@@ -122,6 +122,9 @@ class CSVReports
             this->_groupId = id;
         }
 
+        static bool writeDataForPeakMl(const string& filePath,
+                                       const vector<PeakGroup>& groups);
+
     private:
         /**
          *@brief-  helper function to write group info

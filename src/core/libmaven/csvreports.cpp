@@ -455,43 +455,56 @@ void CSVReports::_writePeakInfo(PeakGroup* group)
     }
 }
 
-void CSVReports::writeDataForPolly(const std::string& file,
-                                   std::list<PeakGroup> groups)
+bool CSVReports::writeDataForPeakMl(const string& filePath,
+                                    const vector<PeakGroup>& groups)
 {
-    _reportStream.open(file.c_str(), ios::out);
-    if (_reportStream.is_open()) {
-        _reportStream << "labelML"
-                      << ","
-                      << "isotopeLabel"
-                      << ","
-                      << "compound";
-        _reportStream << endl;
-
-        for (auto grp : groups) {
-            for (auto child : grp.children) {
-                int mlLabel = (child.markedGoodByCloudModel)
-                                  ? 1
-                                  : (child.markedBadByCloudModel) ? 0 : -1;
-                _reportStream << mlLabel;
-                _reportStream << ",";
-
-                string tagString = child.srmId + child.tagString;
-                tagString = _sanitizeString(tagString.c_str()).toStdString();
-                _reportStream << tagString;
-                _reportStream << ",";
-
-                string compoundName = "";
-                if(child.getCompound() != NULL)
-                    compoundName = _sanitizeString(child.getCompound()->name().c_str()).toStdString();
-                else
-                    compoundName = std::to_string(child.meanMz) + "@"
-                                   + std::to_string(child.meanRt);
-                _reportStream << compoundName;
-                _reportStream << endl;
+    ofstream file(filePath);
+    if (file.is_open()) {
+        file << "groupId" << ","
+             << "sampleName" << ","
+             << "cohortName" << ","
+             << "peakArea" << ","
+             << "peakAreaTop" << ","
+             << "peakAreaFractional" << ","
+             << "peakIntensity" << ","
+             << "peakMz" << ","
+             << "peakRt" << ","
+             << "peakRtMin" << ","
+             << "peakRtMax" << ","
+             << "quality" << ","
+             << "width" << ","
+             << "gaussFitR2" << ","
+             << "noNoiseFraction" << ","
+             << "symmetry" << ","
+             << "signalBaselineRatio" << ","
+             << "groupOverlap" << "\n";
+        file << fixed << setprecision(6);
+        for (auto& group : groups) {
+            for (auto& peak : group.peaks) {
+                file << group.groupId << ","
+                     << "\"" << peak.getSample()->getSampleName() << "\"" << ","
+                     << "\"" << peak.getSample()->getSetName() << "\"" << ","
+                     << peak.peakArea << ","
+                     << peak.peakAreaTop << ","
+                     << peak.peakAreaFractional << ","
+                     << peak.peakIntensity << ","
+                     << peak.peakMz << ","
+                     << peak.rt << ","
+                     << peak.rtmin << ","
+                     << peak.rtmax << ","
+                     << peak.quality << ","
+                     << peak.width << ","
+                     << peak.gaussFitR2 << ","
+                     << peak.noNoiseFraction << ","
+                     << peak.symmetry << ","
+                     << peak.signalBaselineRatio << ","
+                     << peak.groupOverlap << "\n";
             }
         }
+        file.close();
+        return true;
     }
-    _reportStream.close();
+    return false;
 }
 
 ///////////////////////////Test Cases//////////////////////////////
