@@ -101,6 +101,8 @@ public:
         _untargetedMustHaveMs2 = pred;
     }
 
+    void classifyGroups(vector<PeakGroup> &group);
+
 Q_SIGNALS:
 
 	/**
@@ -140,7 +142,8 @@ protected:
 	
 private:
     bool _untargetedMustHaveMs2;
-	string runFunction;
+    bool _classifyPeakGroup;
+    string runFunction;
 	MainWindow *mainwindow;
 
 	/**

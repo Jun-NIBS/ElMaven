@@ -695,68 +695,6 @@ TEST_CASE_FIXTURE(SampleLoadingFixture, "Testing Targeted Groups")
         remove("peakReport.csv");
     }
 
-    SUBCASE("Testing write for polly")
-    {
-        targetedGroup();
-        string pollyFile = "polly.csv";
-        auto sample = samples();
-        auto mavenparameter = mavenparameters();
-        CSVReports* csvReports =
-            new CSVReports(pollyFile,
-                           CSVReports::ReportType::PollyReport,
-                           sample,
-                           PeakGroup::AreaTop,
-                           false,
-                           true,
-                           mavenparameter);
-        std::list<PeakGroup> group = isotopeGroup();
-        csvReports->writeDataForPolly(pollyFile, group);
-
-        ifstream inputPeakFile("polly.csv");
-        ifstream savedPeakFile("tests/test-libmaven/test_polly.csv");
-
-        string headerInput;
-        getline(inputPeakFile, headerInput);
-        string headerSaved;
-        getline(savedPeakFile, headerSaved);
-
-        int cnt = 0;
-        while (!inputPeakFile.eof()) {
-            cnt++;
-            string input;
-            getline(inputPeakFile, input);
-
-            if (input.size() > 0) {
-                vector<string> inputValues;
-                mzUtils::splitNew(input, ",", inputValues);
-
-                if (cnt > 1) {
-                    savedPeakFile.clear();
-                    savedPeakFile.seekg(0, ios::beg);
-                    string headerSaved;
-                    getline(savedPeakFile, headerSaved);
-                }
-
-                while (!savedPeakFile.eof()) {
-                    string saved;
-                    getline(savedPeakFile, saved);
-                    vector<string> savedValues;
-                    mzUtils::splitNew(saved, ",", savedValues);
-
-                    if (inputValues[1] == savedValues[1]
-                        && inputValues[2] == savedValues[2]) {
-                        for (size_t i = 0; i < inputValues.size(); i++)
-                            REQUIRE(inputValues[i] == savedValues[i]);
-                        break;
-                    }
-                }
-            }
-        }
-        inputPeakFile.close();
-        savedPeakFile.close();
-        remove("polly.csv");
-    }
-
     SUBCASE("Testing Untargeted Group File")
     {
         untargetedGroup();

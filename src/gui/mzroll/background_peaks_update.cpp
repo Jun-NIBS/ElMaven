@@ -33,6 +33,7 @@ BackgroundPeakUpdate::BackgroundPeakUpdate(QWidget*) {
         runFunction = "computeKnowsPeaks";
         peakDetector = nullptr;
         setPeakDetector(new PeakDetector());
+        _classifyPeakGroup = true;
 }
 
 BackgroundPeakUpdate::~BackgroundPeakUpdate() {
@@ -129,49 +130,16 @@ void BackgroundPeakUpdate::alignWithObiWarp()
 }
 void BackgroundPeakUpdate::writeCSVRep(string setName)
 {
-    auto prmGroupAt = find_if(begin(mavenParameters->allgroups),
-                              end(mavenParameters->allgroups),
-                              [] (PeakGroup& group) {
-                                  if (group.getCompound())
-                                    return (group.getCompound()->type()
-                                            == Compound::Type::MS2);
-                                  return false;
-                              });
-    bool prmGroupExists = prmGroupAt != end(mavenParameters->allgroups);
-    //write reports
-
-    CSVReports* csvreports = nullptr;
-    if (mavenParameters->writeCSVFlag) {
-        //Added to pass into csvreports file when merged with Maven776 - Kiran
-        bool includeSetNamesLine=true;
-        string groupfilename = mavenParameters->outputdir + setName + ".csv";
-        
-        CSVReports* csvreports = new CSVReports(groupfilename,CSVReports::ReportType::GroupReport,
-                                                  mavenParameters->samples, 
-                                                  mainwindow->getUserQuantType(),
-                                                  prmGroupExists, includeSetNamesLine,
-                                                  mavenParameters);
-    }
     peakDetector->pullAllIsotopes();
 
+    if (_classifyPeakGroup)
+        classifyGroups(mavenParameters->allgroups);
+
     for (int j = 0; j < mavenParameters->allgroups.size(); j++) {
-        PeakGroup& group = mavenParameters->allgroups[j];
-        if (csvreports != NULL)
-            csvreports->addGroup(&group);
-
         if (mavenParameters->keepFoundGroups) {
-            if (_untargetedMustHaveMs2
-                && mavenParameters->allgroups[j].ms2EventCount == 0)
-                continue;
-
             Q_EMIT(newPeakGroup(&(mavenParameters->allgroups[j])));
             QCoreApplication::processEvents();
         }
-    }
-
-    if (csvreports != NULL) {
-            delete (csvreports);
-            csvreports = NULL;
     }
     Q_EMIT(updateProgressBar("Done", 1, 1));
 }
@@ -437,4 +405,145 @@ bool BackgroundPeakUpdate::covertToMzXML(QString filename, QString outfile) {
         };
         QFile testOut(outfile);
         return testOut.exists();
+}
+
+void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
+{
+    Q_EMIT(updateProgressBar("Classifying peaks…", 0, 0));
+    if (groups.empty())
+        return;
+
+    auto tempDir = QStandardPaths::writableLocation(
+                       QStandardPaths::GenericConfigLocation)
+                   + QDir::separator()
+                   + "ElMaven";
+
+    // TODO: binary name will keep changing and should not be hardcoded
+    // TODO: model should not exist anywhere on the filesystem
+#if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
+    auto mlBinary = tempDir + QDir::separator() + "MOI";
+#endif
+#ifdef Q_OS_WIN
+    auto mlBinary = tempDir + QDir::separator() + "MOI.exe";
+#endif
+
+    if (!QFile::exists(mlBinary)) {
+        cerr << "Error: ML binary not found at path: "
+             << mlBinary.toStdString()
+             << endl;
+        return;
+    }
+
+    QString peakAttributesFile = tempDir
+                                 + QDir::separator()
+                                 + "peak_ml_input.csv";
+    QString classificationOutputFile = tempDir
+                                       + QDir::separator()
+                                       + "peak_ml_output.csv";
+
+    // have to enumerated and assign each group with an ID, because multiple
+    // groups at this point have the same ID
+    int startId = 1;
+    for (auto& group : groups)
+        group.groupId = startId++;
+    CSVReports::writeDataForPeakMl(peakAttributesFile.toStdString(),
+                                   groups);
+    if (!QFile::exists(peakAttributesFile)) {
+        cerr << "Error: peak attributes input file not found at path: "
+             << peakAttributesFile.toStdString()
+             << endl;
+        return;
+    }
+
+    QStringList mlArguments;
+    mlArguments << "--ambiguousfeatureDataFile" << peakAttributesFile
+                << "--MOIDataFileName" << classificationOutputFile;
+    QProcess subProcess;
+    subProcess.setWorkingDirectory(QFileInfo(mlBinary).path());
+    subProcess.start(mlBinary, mlArguments);
+    subProcess.waitForFinished(-1);
+    if (!QFile::exists(classificationOutputFile)) {
+        qDebug() << "MOI stdout:" << subProcess.readAllStandardOutput();
+        qDebug() << "MOI stderr:" << subProcess.readAllStandardError();
+        cerr << "Error: peak classification output file not found at path: "
+             << peakAttributesFile.toStdString()
+             << endl;
+        return;
+    }
+
+    QFile file(classificationOutputFile);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        cerr << "Error: failed to open classification output file" << endl;
+        return;
+    }
+
+    map<int, pair<int, float>> predictions;
+    map<string, int> row;
+    vector<string> headers;
+    vector<string> knownHeaders = {"groupid", "label", "probability"};
+    while (!file.atEnd()) {
+        string line = file.readLine().trimmed().toStdString();
+        if (line.empty())
+            continue;
+
+        vector<string> fields;
+        mzUtils::splitNew(line, ",", fields);
+        for (auto& field : fields) {
+            int n = field.length();
+            if (n > 2 && field[0] == '"' && field[n-1] == '"') {
+                field = field.substr(1, n-2);
+            }
+            if (n > 2 && field[0] == '\'' && field[n-1] == '\'') {
+                field = field.substr(1, n-2);
+            }
+        }
+
+        if (headers.empty()) {
+            headers = fields;
+            for(size_t i = 0; i < fields.size(); ++i) {
+                fields[i] = mzUtils::makeLowerCase(fields[i]);
+                if (find(begin(knownHeaders),
+                         end(knownHeaders),
+                         fields[i]) != knownHeaders.end()) {
+                    row[fields[i]] = i;
+                }
+            }
+            continue;
+        }
+
+        int groupId = -1;
+        int label = -1;
+        float probability = 0.0f;
+        if (row.count("groupid"))
+            groupId = string2integer(fields[row["groupid"]]);
+        if (row.count("label"))
+            label = string2integer(fields[row["label"]]);
+        if (row.count("probability"))
+            probability = string2float(fields[row["probability"]]);
+        if (groupId != -1)
+            predictions[groupId] = make_pair(label, probability);
+    }
+
+    // lambda that assigns a `PeakGroup::ClassifiedLabel` for an integer label
+    auto classForLabel = [](int label) {
+        if (label == 0)
+            return PeakGroup::ClassifiedLabel::Noise;
+        if (label == 1)
+            return PeakGroup::ClassifiedLabel::Signal;
+        if (label == 2)
+            return PeakGroup::ClassifiedLabel::Correlation;
+        if (label == 3)
+            return PeakGroup::ClassifiedLabel::Pattern;
+        if (label == 4)
+            return PeakGroup::ClassifiedLabel::CorrelationAndPattern;
+        return PeakGroup::ClassifiedLabel::None;
+    };
+
+    for (auto& group : groups) {
+        if (predictions.count(group.groupId)) {
+            pair<int, float> prediction = predictions.at(group.groupId);
+            group.predictedLabel = classForLabel(prediction.first);
+            group.predictionProbability = prediction.second;
+        }
+    }
 }

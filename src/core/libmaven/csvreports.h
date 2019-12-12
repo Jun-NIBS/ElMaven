@@ -87,9 +87,6 @@ class CSVReports
             return errorReport;
         }
 
-        void writeDataForPolly(const std::string& file,
-                               std::list<PeakGroup> groups);
-
         MavenParameters* getMavenParameters()
         {
             /**
