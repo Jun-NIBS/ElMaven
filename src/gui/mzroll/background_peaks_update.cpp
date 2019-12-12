@@ -471,6 +471,7 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
         return;
     }
 
+    classificationOutputFile = "/Users/khan/Downloads/final_moi.csv";
     QFile file(classificationOutputFile);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         cerr << "Error: failed to open classification output file" << endl;
@@ -478,9 +479,11 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
     }
 
     map<int, pair<int, float>> predictions;
-    map<string, int> row;
+    map<int, map<string, float>> inferences;
+    map<string, int> headerColumnMap;
+    map<string, int> attributeHeaderColumnMap;
     vector<string> headers;
-    vector<string> knownHeaders = {"groupid", "label", "probability"};
+    vector<string> knownHeaders = {"groupId", "label", "probability"};
     while (!file.atEnd()) {
         string line = file.readLine().trimmed().toStdString();
         if (line.empty())
@@ -501,11 +504,12 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
         if (headers.empty()) {
             headers = fields;
             for(size_t i = 0; i < fields.size(); ++i) {
-                fields[i] = mzUtils::makeLowerCase(fields[i]);
                 if (find(begin(knownHeaders),
                          end(knownHeaders),
                          fields[i]) != knownHeaders.end()) {
-                    row[fields[i]] = i;
+                    headerColumnMap[fields[i]] = i;
+                } else {
+                    attributeHeaderColumnMap[fields[i]] = i;
                 }
             }
             continue;
@@ -514,14 +518,22 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
         int groupId = -1;
         int label = -1;
         float probability = 0.0f;
-        if (row.count("groupid"))
-            groupId = string2integer(fields[row["groupid"]]);
-        if (row.count("label"))
-            label = string2integer(fields[row["label"]]);
-        if (row.count("probability"))
-            probability = string2float(fields[row["probability"]]);
-        if (groupId != -1)
+        if (headerColumnMap.count("groupId"))
+            groupId = string2integer(fields[headerColumnMap["groupId"]]);
+        if (headerColumnMap.count("label"))
+            label = string2integer(fields[headerColumnMap["label"]]);
+        if (headerColumnMap.count("probability"))
+            probability = string2float(fields[headerColumnMap["probability"]]);
+        if (groupId != -1) {
             predictions[groupId] = make_pair(label, probability);
+            map<string, float> groupInference;
+            for (auto& element : attributeHeaderColumnMap) {
+                string attribute = element.first;
+                float value = string2float(fields[element.second]);
+                groupInference[attribute] = value;
+            }
+            inferences[groupId] = groupInference;
+        }
     }
 
     // lambda that assigns a `PeakGroup::ClassifiedLabel` for an integer label
@@ -545,5 +557,7 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
             group.predictedLabel = classForLabel(prediction.first);
             group.predictionProbability = prediction.second;
         }
+        if (inferences.count(group.groupId))
+            group.predictionInference = inferences.at(group.groupId);
     }
 }
