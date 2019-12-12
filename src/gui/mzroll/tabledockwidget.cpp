@@ -166,6 +166,7 @@ void TableDockWidget::setupPeakTable() {
     colNames << "Max Quality";
     colNames << "MS2 Score";
     colNames << "#MS2 Events";
+    colNames << "Probability"; // TODO: add this column conditionally
     colNames << "Rank";
   } else if (viewType == peakView) {
     vector<mzSample *> vsamples = _mainwindow->getVisibleSamples();
@@ -366,12 +367,13 @@ void TableDockWidget::addRow(PeakGroup *group, QTreeWidgetItem *root) {
     item->setText(11, QString::number(group->maxQuality, 'f', 2));
     item->setText(12, QString::number(group->fragMatchScore.mergedScore, 'f', 2));
     item->setText(13, QString::number(group->ms2EventCount));
-    item->setText(14, QString::number(group->groupRank, 'e', 6));
+    item->setText(14, QString::number(group->predictionProbability, 'f', 3));
+    item->setText(15, QString::number(group->groupRank, 'e', 6));
 
     if (group->changeFoldRatio != 0) {
 
-      item->setText(15, QString::number(group->changeFoldRatio, 'f', 2));
-      item->setText(16, QString::number(group->changePValue, 'e', 4));
+      item->setText(16, QString::number(group->changeFoldRatio, 'f', 2));
+      item->setText(17, QString::number(group->changePValue, 'e', 4));
     }
   } else if (viewType == peakView) {
     vector<mzSample *> vsamples = _mainwindow->getVisibleSamples();
@@ -2683,6 +2685,7 @@ void ScatterplotTableDockWidget::setupPeakTable() {
     colNames << "Max Quality";
     colNames << "MS2 Score";
     colNames << "#MS2 Events";
+    colNames << "Probability"; // TODO: add this column conditionally
     colNames << "Rank";
 
     // add scatterplot table columns
