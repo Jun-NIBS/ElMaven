@@ -115,5 +115,8 @@
         <file>images/note.png</file>
         <file>images/resetzoom.png</file>
         <file>images/unmark.png</file>
+        <file>images/moi_correlated.png</file>
+        <file>images/moi_pattern_correlated.png</file>
+        <file>images/moi_pattern.png</file>
     </qresource>
 </RCC>

@@ -38,6 +38,16 @@ class PeakGroup{
                         Quality=5,
                         SNRatio=6,
                         AreaTopNotCorrected=7};
+
+        enum class ClassifiedLabel {
+            None,                // the group has not been classified using ML yet
+            Noise,               // the group is too noisy to be a metbolite
+            Signal,              // the group shows a clear signal but may not be an interesting metabolite
+            Correlated,          // the group is a signal and is correlated to one or more signals
+            Pattern,             // the group is a signal and shows interesting inter-cohort intensity pattern
+            CorrelatedAndPattern // the group is a signal which shows correlation as well as intensity pattern
+        };
+
         PeakGroup();
         PeakGroup(const PeakGroup& o);
         PeakGroup& operator=(const PeakGroup& o);
@@ -145,7 +155,7 @@ class PeakGroup{
         int markedBadByCloudModel = 0;
         float groupQuality;
         float weightedAvgPeakQuality;
-        int predictedLabel;
+        ClassifiedLabel predictedLabel;
         double minQuality;
         float maxPeakFracionalArea;
         float maxSignalBaseRatio;
