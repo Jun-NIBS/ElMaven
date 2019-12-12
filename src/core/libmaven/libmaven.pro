@@ -50,7 +50,6 @@ INCLUDEPATH +=  $$top_srcdir/3rdparty/pugixml/src/ \
                 $$top_srcdir/3rdparty/ErrorHandling \
                 $$top_srcdir/3rdparty/obiwarp/ \
                 $$top_srcdir/3rdparty/Eigen/ \
-                $$top_srcdir/3rdparty/libsvm \
                 $$top_srcdir/3rdparty/NimbleDSP/src \
                 $$top_srcdir/3rdparty/doctest       \
                 $$top_srcdir/3rdparty/json      \
@@ -106,9 +105,6 @@ SOURCES = base64.cpp \
           isotopeDetection.cpp \
           datastructures/adduct.cpp \
           datastructures/mzSlice.cpp \
-          groupClassifier.cpp \
-          groupFeatures.cpp \
-          svmPredictor.cpp \
           zlib.cpp \
           adductdetection.cpp
 
@@ -153,7 +149,4 @@ HEADERS += constants.h \
            datastructures/adduct.h \
            datastructures/mzSlice.h \
            settings.h \
-           groupClassifier.h \
-           groupFeatures.h \
-           svmPredictor.h \
            adductdetection.h

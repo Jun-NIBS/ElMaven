@@ -12,7 +12,6 @@ SUBDIRS += obiwarp       \
            libpls        \
            Logger        \
            ErrorHandling \
-           libsvm        \
            NimbleDSP     \
            libmgf
 
