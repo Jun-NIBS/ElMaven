@@ -3,7 +3,6 @@
 
 #include <QWidgetAction>
 
-#include "pollyintegration.h"
 #include "stable.h"
 
 class MainWindow;
@@ -28,8 +27,6 @@ public:
   QTreeWidget *treeWidget;
   QLabel *titlePeakTable;
   JSONReports *jsonReports;
-  int numberOfGroupsMarked = 0;
-  QString writableTempS3Dir;
   /**
    * @brief vallgroups will be used by libmaven/jsonReports.cpp
    * @detail For json export. Since libmaven is written only standard
@@ -38,11 +35,7 @@ public:
    * @see- <TableDockWidget::exportJson>
    */
   vector<PeakGroup> vallgroups;
-  vector<PeakGroup> subsetPeakGroups;
-  int maxPeaks;
   QList<PeakGroup> allgroups;
-  QString uploadId;
-  int uploadCount = 0;
 
   enum tableViewType { groupView = 0, peakView = 1 };
   enum peakTableSelectionType {
@@ -165,7 +158,7 @@ public Q_SLOTS:
   void prepareDataForPolly(QString writableTempDir,
                            QString exportFormat,
                            QString userFilename);
-  void exportJsonToPolly(QString writableTempDir, QString jsonfileName, bool addMLInfo);
+  void exportJsonToPolly(QString writableTempDir, QString jsonfileName);
 
   void showTrainDialog();
   void showClusterDialog();
@@ -191,7 +184,6 @@ public Q_SLOTS:
   };
 
   void exportJson();
-  void UploadPeakBatchToCloud();
   void showSelectedGroup();
   void setGroupLabel(char label);
   void showLastGroup();
@@ -207,9 +199,6 @@ public Q_SLOTS:
   void updateTable();
   void updateItem(QTreeWidgetItem *item, bool updateChildren = true);
   void updateStatus();
-
-  //Group validation functions
-  void validateGroup(PeakGroup* grp, QTreeWidgetItem* item);
 
   virtual void markGroupBad();
   virtual void markGroupGood();
@@ -273,7 +262,6 @@ protected:
 
 Q_SIGNALS:
   void updateProgressBar(QString, int, int);
-  void UploadPeakBatch();
 
 protected Q_SLOTS:
   void keyPressEvent(QKeyEvent *e);
@@ -463,21 +451,5 @@ public:
   virtual void keyPressEvent(QKeyEvent *event);
   void setData(QStringList vstrings) { strings = vstrings; }
 };
-
-class UploadPeaksToCloudThread : public QThread
-{
-    Q_OBJECT
-    public:
-        UploadPeaksToCloudThread(PollyIntegration* iPolly);
-        ~UploadPeaksToCloudThread();
-        void run();
-        QString sessionId;
-        QString fileName;
-        QString filePath;
-        PollyIntegration* _pollyintegration;
-    signals:
-        void resultReady(QString sessionId);
-};
-
 
 #endif
