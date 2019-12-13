@@ -479,7 +479,7 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
     }
 
     map<int, pair<int, float>> predictions;
-    map<int, map<string, float>> inferences;
+    map<int, multimap<float, string>> inferences;
     map<string, int> headerColumnMap;
     map<string, int> attributeHeaderColumnMap;
     vector<string> headers;
@@ -526,11 +526,14 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
             probability = string2float(fields[headerColumnMap["probability"]]);
         if (groupId != -1) {
             predictions[groupId] = make_pair(label, probability);
-            map<string, float> groupInference;
+
+            // we use multimap for values mapping to attribute names because
+            // later on sorted values are really helpful
+            multimap<float, string> groupInference;
             for (auto& element : attributeHeaderColumnMap) {
                 string attribute = element.first;
                 float value = string2float(fields[element.second]);
-                groupInference[attribute] = value;
+                groupInference.insert(make_pair(value, attribute));
             }
             inferences[groupId] = groupInference;
         }
