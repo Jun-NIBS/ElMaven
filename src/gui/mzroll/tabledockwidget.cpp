@@ -143,7 +143,7 @@ void TableDockWidget::setIntensityColName() {
     break;
   }
   _mainwindow->currentIntensityName = temp;
-  header->setText(9, temp);
+  header->setText(10, temp);
 }
 
 void TableDockWidget::setupPeakTable() {
@@ -151,6 +151,7 @@ void TableDockWidget::setupPeakTable() {
   QStringList colNames;
 
   // Add common coulmns to the Table
+  colNames << "Label"; // TODO: add this column conditionally
   colNames << "#";
   colNames << "ID";
   colNames << "Observed m/z";
@@ -197,16 +198,16 @@ void TableDockWidget::updateTable() {
 }
 
 void TableDockWidget::updateItem(QTreeWidgetItem *item, bool updateChildren) {
-  QVariant v = item->data(0, Qt::UserRole);
+  QVariant v = item->data(1, Qt::UserRole);
   PeakGroup *group = v.value<PeakGroup *>();
   if (group == NULL)
     return;
   heatmapBackground(item);
 
   if (viewType == groupView)
-    item->setText(11, QString::number(group->maxQuality, 'f', 2));
+    item->setText(12, QString::number(group->maxQuality, 'f', 2));
 
-  item->setText(1, QString(group->getName().c_str()));
+  item->setText(2, QString(group->getName().c_str()));
 
   int good = 0;
   int bad = 0;
@@ -231,19 +232,45 @@ void TableDockWidget::updateItem(QTreeWidgetItem *item, bool updateChildren) {
   if (group->label == 'g'
       || group->predictedLabel == PeakGroup::ClassifiedLabel::Signal) {
     item->setIcon(0, QIcon(":/images/good.png"));
+    // we have to store stringified classifier labels because QVariant has
+    // issues with standard enum classes
+    QString castLabel = "PeakGroup::ClassifiedLabel::Signal";
+    item->setData(0,
+                  Qt::UserRole,
+                  QVariant::fromValue(castLabel));
   } else if (group->label == 'b'
              || group->predictedLabel == PeakGroup::ClassifiedLabel::Noise) {
     item->setIcon(0, QIcon(":/images/bad.png"));
+    QString castLabel = "PeakGroup::ClassifiedLabel::Noise";
+    item->setData(0,
+                  Qt::UserRole,
+                  QVariant::fromValue(castLabel));
   } else if (group->predictedLabel == PeakGroup::ClassifiedLabel::Correlation) {
     item->setIcon(0, QIcon(":/images/moi_correlated.png"));
+    QString castLabel = "PeakGroup::ClassifiedLabel::Correlation";
+    item->setData(0,
+                  Qt::UserRole,
+                  QVariant::fromValue(castLabel));
   } else if (group->predictedLabel == PeakGroup::ClassifiedLabel::Pattern) {
     item->setIcon(0, QIcon(":/images/moi_pattern.png"));
+    QString castLabel = "PeakGroup::ClassifiedLabel::Pattern";
+    item->setData(0,
+                  Qt::UserRole,
+                  QVariant::fromValue(castLabel));
   } else if (group->predictedLabel
              == PeakGroup::ClassifiedLabel::CorrelationAndPattern) {
     item->setIcon(0, QIcon(":/images/moi_pattern_correlated.png"));
+    QString castLabel = "PeakGroup::ClassifiedLabel::CorrelationAndPattern";
+    item->setData(0,
+                  Qt::UserRole,
+                  QVariant::fromValue(castLabel));
   } else {
     item->setIcon(0, QIcon());
-  }
+    QString castLabel = "PeakGroup::ClassifiedLabel::None";
+    item->setData(0,
+                  Qt::UserRole,
+                  QVariant::fromValue(castLabel));
+ }
 
   if (filtersDialog->isVisible()) {
     float minG = sliders["GoodPeakCount"]->minBoundValue();
@@ -268,7 +295,7 @@ void TableDockWidget::updateCompoundWidget() {
   while (*itr) {
     QTreeWidgetItem *item = (*itr);
     if (item) {
-      QVariant v = item->data(0, Qt::UserRole);
+      QVariant v = item->data(1, Qt::UserRole);
       PeakGroup *group = v.value<PeakGroup *>();
       if (group == nullptr)
         continue;
@@ -332,51 +359,66 @@ void TableDockWidget::addRow(PeakGroup *group, QTreeWidgetItem *root) {
   NumericTreeWidgetItem *item = new NumericTreeWidgetItem(root, 0);
   item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled |
                  Qt::ItemIsDragEnabled);
-  item->setData(0, Qt::UserRole, QVariant::fromValue(group));
+  item->setData(1, Qt::UserRole, QVariant::fromValue(group));
 
-  item->setText(0, QString::number(group->groupId));
-  item->setText(1, QString(group->getName().c_str()));
-  item->setText(2, QString::number(group->meanMz, 'f', 4));
+  item->setText(1, QString::number(group->groupId));
+  item->setText(2, QString(group->getName().c_str()));
+  item->setText(3, QString::number(group->meanMz, 'f', 4));
   int charge = _mainwindow->mavenParameters->getCharge(group->getCompound());
 
   if (group->getExpectedMz(charge) != -1) {
     float mz = group->getExpectedMz(charge);
 
-    item->setText(3, QString::number(mz, 'f', 4));
+    item->setText(4, QString::number(mz, 'f', 4));
   } else {
-    item->setText(3, "NA");
+    item->setText(4, "NA");
   }
 
-  item->setText(4, QString::number(group->meanRt, 'f', 2));
+  item->setText(5, QString::number(group->meanRt, 'f', 2));
 
-  if (group->label == 'g')
+  if (group->label == 'g') {
     item->setIcon(0, QIcon(":/images/good.png"));
-  if (group->label == 'b')
+    QString castLabel = "PeakGroup::ClassifiedLabel::Signal";
+    item->setData(0,
+                  Qt::UserRole,
+                  QVariant::fromValue(castLabel));
+  } else if (group->label == 'b') {
     item->setIcon(0, QIcon(":/images/bad.png"));
+    QString castLabel = "PeakGroup::ClassifiedLabel::Noise";
+    item->setData(0,
+                  Qt::UserRole,
+                  QVariant::fromValue(castLabel));
+  } else {
+    item->setIcon(0, QIcon());
+    QString castLabel = "PeakGroup::ClassifiedLabel::None";
+    item->setData(0,
+                  Qt::UserRole,
+                  QVariant::fromValue(castLabel));
+  }
 
   if (viewType == groupView) {
     auto expectedRtDiff = group->expectedRtDiff();
     if (expectedRtDiff == -1.0f) {
-      item->setText(5, "NA");
+      item->setText(6, "NA");
     } else {
-      item->setText(5, QString::number(expectedRtDiff, 'f', 2));
+      item->setText(6, QString::number(expectedRtDiff, 'f', 2));
     }
-    item->setText(6, QString::number(group->sampleCount
+    item->setText(7, QString::number(group->sampleCount
                                      + group->blankSampleCount));
-    item->setText(7, QString::number(group->goodPeakCount));
-    item->setText(8, QString::number(group->maxNoNoiseObs));
-    item->setText(9, QString::number(extractMaxIntensity(group), 'g', 3));
-    item->setText(10, QString::number(group->maxSignalBaselineRatio, 'f', 0));
-    item->setText(11, QString::number(group->maxQuality, 'f', 2));
-    item->setText(12, QString::number(group->fragMatchScore.mergedScore, 'f', 2));
-    item->setText(13, QString::number(group->ms2EventCount));
-    item->setText(14, QString::number(group->predictionProbability, 'f', 3));
-    item->setText(15, QString::number(group->groupRank, 'e', 6));
+    item->setText(8, QString::number(group->goodPeakCount));
+    item->setText(9, QString::number(group->maxNoNoiseObs));
+    item->setText(10, QString::number(extractMaxIntensity(group), 'g', 3));
+    item->setText(11, QString::number(group->maxSignalBaselineRatio, 'f', 0));
+    item->setText(12, QString::number(group->maxQuality, 'f', 2));
+    item->setText(13, QString::number(group->fragMatchScore.mergedScore, 'f', 2));
+    item->setText(14, QString::number(group->ms2EventCount));
+    item->setText(15, QString::number(group->predictionProbability, 'f', 3));
+    item->setText(16, QString::number(group->groupRank, 'e', 6));
 
     if (group->changeFoldRatio != 0) {
 
-      item->setText(16, QString::number(group->changeFoldRatio, 'f', 2));
-      item->setText(17, QString::number(group->changePValue, 'e', 4));
+      item->setText(17, QString::number(group->changeFoldRatio, 'f', 2));
+      item->setText(18, QString::number(group->changePValue, 'e', 4));
     }
   } else if (viewType == peakView) {
     vector<mzSample *> vsamples = _mainwindow->getVisibleSamples();
@@ -385,7 +427,7 @@ void TableDockWidget::addRow(PeakGroup *group, QTreeWidgetItem *root) {
         vsamples, _mainwindow->getUserQuantType());
     for (unsigned int i = 0; i < yvalues.size(); i++) {
 
-      item->setText(5 + i, QString::number(yvalues[i]));
+      item->setText(6 + i, QString::number(yvalues[i]));
     }
     heatmapBackground(item);
   }
@@ -474,10 +516,10 @@ void TableDockWidget::showAllGroups() {
     if (clusterId && allgroups[i].meanMz > 0 && allgroups[i].peakCount() > 0) {
       if (!parents.contains(clusterId)) {
         parents[clusterId] = new QTreeWidgetItem(treeWidget);
-        parents[clusterId]->setText(0, QString("Cluster ") +
+        parents[clusterId]->setText(1, QString("Cluster ") +
                                            QString::number(clusterId));
         parents[clusterId]->setText(
-            5, QString::number(allgroups[i].meanRt, 'f', 2));
+            6, QString::number(allgroups[i].meanRt, 'f', 2));
         parents[clusterId]->setExpanded(true);
       }
       QTreeWidgetItem *parent = parents[clusterId];
@@ -855,7 +897,7 @@ void TableDockWidget::showSelectedGroup() {
   if (!item)
     return;
 
-  QVariant v = item->data(0, Qt::UserRole);
+  QVariant v = item->data(1, Qt::UserRole);
   PeakGroup *group = v.value<PeakGroup *>();
   _mainwindow->groupRtWidget->plotGraph(group);
 
@@ -867,7 +909,7 @@ void TableDockWidget::showSelectedGroup() {
     vector<PeakGroup *> children;
     for (int i = 0; i < item->childCount(); i++) {
       QTreeWidgetItem *child = item->child(i);
-      QVariant data = child->data(0, Qt::UserRole);
+      QVariant data = child->data(1, Qt::UserRole);
       PeakGroup *group = data.value<PeakGroup *>();
       if (group)
         children.push_back(group);
@@ -879,7 +921,7 @@ QList<PeakGroup *> TableDockWidget::getSelectedGroups() {
   QList<PeakGroup *> selectedGroups;
   Q_FOREACH (QTreeWidgetItem *item, treeWidget->selectedItems()) {
     if (item) {
-      QVariant v = item->data(0, Qt::UserRole);
+      QVariant v = item->data(1, Qt::UserRole);
       PeakGroup *group = v.value<PeakGroup *>();
       if (group != NULL) {
         selectedGroups.append(group);
@@ -900,7 +942,7 @@ TableDockWidget::getCustomGroups(peakTableSelectionType peakSelection) {
   peakTableSelectionType temppeakSelection = peakSelection;
   Q_FOREACH (QTreeWidgetItem *item, treeWidget->selectedItems()) {
     if (item) {
-      QVariant v = item->data(0, Qt::UserRole);
+      QVariant v = item->data(1, Qt::UserRole);
       PeakGroup *group = v.value<PeakGroup *>();
       if (group != NULL) {
         if (temppeakSelection == peakTableSelectionType::Good) {
@@ -924,7 +966,7 @@ PeakGroup *TableDockWidget::getSelectedGroup() {
   QTreeWidgetItem *item = treeWidget->currentItem();
   if (!item)
     return NULL;
-  QVariant v = item->data(0, Qt::UserRole);
+  QVariant v = item->data(1, Qt::UserRole);
   PeakGroup *group = v.value<PeakGroup *>();
   if (group != NULL) {
     return group;
@@ -935,7 +977,7 @@ PeakGroup *TableDockWidget::getSelectedGroup() {
 void TableDockWidget::setGroupLabel(char label) {
   Q_FOREACH (QTreeWidgetItem *item, treeWidget->selectedItems()) {
     if (item) {
-      QVariant v = item->data(0, Qt::UserRole);
+      QVariant v = item->data(1, Qt::UserRole);
       PeakGroup *group = v.value<PeakGroup *>();
       if (group != NULL)
         group->setLabel(label);
@@ -968,7 +1010,7 @@ void TableDockWidget::deleteGroup(PeakGroup *groupX) {
       ++it;
       continue;
     }
-    QVariant v = item->data(0, Qt::UserRole);
+    QVariant v = item->data(1, Qt::UserRole);
     PeakGroup *group = v.value<PeakGroup *>();
     if (group != NULL and group == groupX) {
       item->setHidden(true);
@@ -1009,7 +1051,7 @@ void TableDockWidget::deleteGroups() {
   Q_FOREACH (QTreeWidgetItem *item, treeWidget->selectedItems()) {
     if (item) {
       nextItem = treeWidget->itemBelow(item);
-      QVariant v = item->data(0, Qt::UserRole);
+      QVariant v = item->data(1, Qt::UserRole);
       PeakGroup *group = v.value<PeakGroup *>();
       if (group != NULL) {
         PeakGroup *parentGroup = group->parent;
@@ -1017,7 +1059,7 @@ void TableDockWidget::deleteGroups() {
         if (parentGroup == NULL) {
             // top level item
             if (nextItem) {
-                QVariant vc = nextItem->data(0, Qt::UserRole);
+                QVariant vc = nextItem->data(1, Qt::UserRole);
                 PeakGroup *groupc = vc.value<PeakGroup *>();
             	if (groupc->isIsotope())
             		nextItem = nextItem->parent();
@@ -1941,7 +1983,7 @@ void TableDockWidget::showFocusedGroups() {
   int N = treeWidget->topLevelItemCount();
   for (int i = 0; i < N; i++) {
     QTreeWidgetItem *item = treeWidget->topLevelItem(i);
-    QVariant v = item->data(0, Qt::UserRole);
+    QVariant v = item->data(1, Qt::UserRole);
     PeakGroup *group = v.value<PeakGroup *>();
     if (group && group->isFocused)
       item->setHidden(false);
@@ -1951,7 +1993,7 @@ void TableDockWidget::showFocusedGroups() {
     if (item->text(0).startsWith("Cluster")) {
       bool showParentFlag = false;
       for (int j = 0; j < item->childCount(); j++) {
-        QVariant v = (item->child(j))->data(0, Qt::UserRole);
+        QVariant v = (item->child(j))->data(1, Qt::UserRole);
         PeakGroup *group = v.value<PeakGroup *>();
         if (group && group->isFocused) {
           item->setHidden(false);
@@ -2405,7 +2447,7 @@ void PeakTableDockWidget::destroy() {
 void PeakTableDockWidget::cleanUp()
 {
   if (treeWidget->currentItem())
-    emit unSetFromEicWidget(treeWidget->currentItem()->data(0, Qt::UserRole).value<PeakGroup*>());
+    emit unSetFromEicWidget(treeWidget->currentItem()->data(1, Qt::UserRole).value<PeakGroup*>());
   _mainwindow->ligandWidget->resetColor();
 }
 
@@ -2719,7 +2761,7 @@ void BookmarkTableDockWidget::deleteGroup(PeakGroup *groupX) {
       ++it;
       continue;
     }
-    QVariant v = item->data(0, Qt::UserRole);
+    QVariant v = item->data(1, Qt::UserRole);
     PeakGroup *group = v.value<PeakGroup *>();
     if (group != NULL and group == groupX) {
         item->setHidden(true);
@@ -2856,6 +2898,7 @@ void ScatterplotTableDockWidget::setupPeakTable() {
   QStringList colNames;
 
   // Add common columns to the table
+  colNames << "Label";
   colNames << "#";
   colNames << "ID";
   colNames << "Observed m/z";
