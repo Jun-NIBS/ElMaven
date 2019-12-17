@@ -688,9 +688,9 @@ void PollyElmavenInterfaceDialog::_reviseGroupOptions(QString tableName)
     bool anyGood = false;
     bool allBad = true;
     for (auto group : groups) {
-        if (group->label == 'g')
+        if (group->userLabel() == 'g')
             anyGood = true;
-        if (group->label != 'b')
+        if (group->userLabel() != 'b')
             allBad = false;
     }
     auto model = dynamic_cast<QStandardItemModel*>(groupSetCombo->model());

@@ -1216,7 +1216,7 @@ PeakGroup* mzFileIO::readGroupXML(QXmlStreamReader& xml, PeakGroup* parent)
     group->groupRank = xml.attributes().value("grouRank").toString().toFloat();
     group->expectedMz =
         xml.attributes().value("expectedMz").toString().toFloat();
-    group->label = xml.attributes().value("label").toString().toInt();
+    group->setUserLabel(xml.attributes().value("label").toString().toInt());
     group->setType((PeakGroup::GroupType)xml.attributes()
                        .value("type")
                        .toString()

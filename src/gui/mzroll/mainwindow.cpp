@@ -4248,7 +4248,7 @@ void MainWindow::markGroup(PeakGroup* group, char label) {
 	if (!group)
 		return;
 
-	group->setLabel(label);
+    group->setUserLabel(label);
 	bookmarkPeakGroup(group);
 	//if (getClassifier()) { getClassifier()->refineModel(group); }
 	//getPlotWidget()->scene()->update();
