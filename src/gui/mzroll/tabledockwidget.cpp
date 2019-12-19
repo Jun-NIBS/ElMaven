@@ -216,7 +216,7 @@ void TableDockWidget::_paintClassificationDisagreement(QTreeWidgetItem *item)
   } else if (numBad > 0 && group->userLabel() == 'g') {
     incorrectFraction = static_cast<float>(numBad) / total;
   }
-  QLinearGradient gradient(18, 6, 48, 6);
+  QLinearGradient gradient(0, 6, 42, 6);
   gradient.setColorAt(0, QColor::fromRgbF(1, 1, 1, 0));
   gradient.setColorAt(1, QColor::fromRgbF(0.8, 0.2, 0.2, incorrectFraction));
   QBrush brush(gradient);
