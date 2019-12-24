@@ -546,25 +546,12 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
         }
     }
 
-    // lambda that assigns a `PeakGroup::ClassifiedLabel` for an integer label
-    auto classForLabel = [](int label) {
-        if (label == 0)
-            return PeakGroup::ClassifiedLabel::Noise;
-        if (label == 1)
-            return PeakGroup::ClassifiedLabel::Signal;
-        if (label == 2)
-            return PeakGroup::ClassifiedLabel::Correlation;
-        if (label == 3)
-            return PeakGroup::ClassifiedLabel::Pattern;
-        if (label == 4)
-            return PeakGroup::ClassifiedLabel::CorrelationAndPattern;
-        return PeakGroup::ClassifiedLabel::None;
-    };
-
     for (auto& group : groups) {
         if (predictions.count(group.groupId)) {
             pair<int, float> prediction = predictions.at(group.groupId);
-            group.setPredictedLabel(classForLabel(prediction.first), prediction.second);
+            group.setPredictedLabel(
+                PeakGroup::classificationLabelForValue(prediction.first),
+                prediction.second);
         }
         if (inferences.count(group.groupId))
             group.setPredictionInference(inferences.at(group.groupId));

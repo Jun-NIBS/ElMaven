@@ -112,7 +112,11 @@
                                            , slice_rt_min                       REAL                              \
                                            , slice_rt_max                       REAL                              \
                                            , slice_ion_count                    REAL                              \
-                                           , table_group_id                     INTEGER                           );"
+                                           , table_group_id                     INTEGER                           \
+                                           , predicted_label                    INTEGER                           \
+                                           , prediction_probability             REAL                              \
+                                           , prediction_inference_key           TEXT                              \
+                                           , prediction_inference_value         TEXT                              );"
 
 #define CREATE_COMPOUNDS_TABLE \
     "CREATE TABLE IF NOT EXISTS compounds ( compound_id           TEXT               \

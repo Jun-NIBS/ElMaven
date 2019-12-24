@@ -449,7 +449,8 @@ map<int, string> dbVersionUpgradeScripts = {
         "ALTER TABLE user_settings ADD COLUMN identification_match_rt  INTEGER;"
         "ALTER TABLE user_settings ADD COLUMN identification_rt_window REAL;"
         "COMMIT;"
-    }
+    },
+    // TODO: add instructions to upgrade `peakgroup` table for PeakML attributes
 };
 
 ////////////////////////////////////////////////////////////////////////////////
