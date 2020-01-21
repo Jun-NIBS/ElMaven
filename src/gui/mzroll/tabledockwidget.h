@@ -4,6 +4,7 @@
 #include <QWidgetAction>
 
 #include "stable.h"
+#include "PeakGroup.h"
 
 class MainWindow;
 class TrainDialog;
@@ -15,6 +16,7 @@ class JSONReports;
 class PeakGroup;
 class EIC;
 class QHistogramSlider;
+class MultiSelectComboBox;
 
 using namespace std;
 
@@ -38,13 +40,21 @@ public:
   QList<PeakGroup> allgroups;
 
   enum tableViewType { groupView = 0, peakView = 1 };
-  enum peakTableSelectionType {
+
+  enum PeakTableSubsetType {
       Selected = 0,
-      Whole = 1,
+      All = 1,
       Good = 2,
       Bad = 3,
-      NotBad = 4
+      ExcludeBad = 4,
+      Unmarked = 5,
+      Correlated = 6,
+      Variance = 7,
+      CorrelatedVariance = 8
   };
+
+  static const QMap<PeakGroup::ClassifiedLabel, QString> labelsForLegend();
+  static const QMap<PeakGroup::ClassifiedLabel, QIcon> iconsForLegend();
 
   /**
    * @brief Construct and initialize a TableDockWidget.
@@ -98,6 +108,8 @@ public:
    * @return Targeted group count as integer.
    */
   int getLabeledGroupCount();
+
+  void setLegend(MultiSelectComboBox *legend) { _legend = legend; }
 
   /**
    * @brief Obtain the title of a TableDockWidget, identified by its unique ID.
@@ -163,25 +175,50 @@ public Q_SLOTS:
   void showTrainDialog();
   void showClusterDialog();
 
-  inline void selectedPeakSet() {
-    peakTableSelection = peakTableSelectionType::Selected;
+  inline void selectedPeaks() {
+    peakTableSelection = PeakTableSubsetType::Selected;
   };
 
-  inline void wholePeakSet() {
-    peakTableSelection = peakTableSelectionType::Whole;
+  inline void allPeaks() {
+    peakTableSelection = PeakTableSubsetType::All;
   };
 
-  inline void goodPeakSet() {
-    peakTableSelection = peakTableSelectionType::Good;
+  inline void goodPeaks() {
+    peakTableSelection = PeakTableSubsetType::Good;
   };
 
-  inline void badPeakSet() {
-    peakTableSelection = peakTableSelectionType::Bad;
+  inline void badPeaks() {
+    peakTableSelection = PeakTableSubsetType::Bad;
   };
 
-  inline void excludeBadPeakSet() {
-      peakTableSelection = peakTableSelectionType::NotBad;
+  inline void excludeBadPeaks() {
+      peakTableSelection = PeakTableSubsetType::ExcludeBad;
   };
+
+  inline void unmarkedPeaks() {
+      peakTableSelection = PeakTableSubsetType::Unmarked;
+  };
+
+  /**
+   * @brief Query the peak table for number of peak-groups that belong to each
+   * subset type.
+   * @return Each `PeakTableSubsetType` mapping to the number of peak-groups
+   * that fall within its category.
+   */
+  QMap<PeakTableSubsetType, int> countBySubsets();
+
+  /**
+   * @brief Given a list of subset types, hides all other subsets, disregarding
+   * `All` and `Selected` subset types.
+   * @param subsets A list of subsets whose items will remain visible.
+   */
+  void showOnlySubsets(QList<PeakTableSubsetType> visibleSubsets);
+
+  /**
+   * @brief Filters the tree-view such that only labels selected in the legend
+   * dropdown are visible.
+   */
+  void filterForSelectedLabels();
 
   void exportJson();
   void showSelectedGroup();
@@ -268,6 +305,7 @@ protected Q_SLOTS:
   void contextMenuEvent(QContextMenuEvent *event);
 
 private:
+  MultiSelectComboBox *_legend;
   QPalette pal;
   void addRow(PeakGroup *group, QTreeWidgetItem *root);
   void heatmapBackground(QTreeWidgetItem *item);
@@ -287,8 +325,21 @@ private:
   ClusterDialog *clusterDialog;
   QDialog *filtersDialog;
   QMap<QString, QHistogramSlider *> sliders;
-  peakTableSelectionType peakTableSelection;
-  QList<PeakGroup *> getCustomGroups(peakTableSelectionType peakSelection);
+  PeakTableSubsetType peakTableSelection;
+  QList<PeakGroup *> getCustomGroups(PeakTableSubsetType peakSelection);
+
+  /**
+   * @brief Constructs lists of tree items that can be categorized within each
+   * `PeakTableSubsetType`.
+   * @details Items that themselves contain child groups will be ignored and
+   * their child groups will be added to the respective lists. Often the child
+   * groups will have their own class (which is different from that of the
+   * parent).
+   * @return Each `PeakTableSubsetType` mapping to the items in tree widget that
+   * belong to that subset.
+   */
+  QMap<PeakTableSubsetType, QList<QTreeWidgetItem*>> _peakTableGroupedBySubsets();
+
   bool tableSelectionFlagUp;
   bool tableSelectionFlagDown;
 };
