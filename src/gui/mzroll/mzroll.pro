@@ -247,7 +247,9 @@ HEADERS += stable.h \
            isotopedialog.h \
            adductwidget.h \
            autoupdater.h \
-           updatedialog.h
+           updatedialog.h 
+           multiselectcombobox.h
+
 
 SOURCES += mainwindow.cpp  \
            database.cpp \
@@ -322,7 +324,9 @@ SOURCES += mainwindow.cpp  \
            isotopedialog.cpp \
            adductwidget.cpp \
            autoupdater.cpp \
-           updatedialog.cpp
+           updatedialog.cpp \
+           multiselectcombobox.cpp
+
 
 linux {
     SOURCES -= autoupdater.cpp
