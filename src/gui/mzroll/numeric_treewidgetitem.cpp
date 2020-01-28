@@ -1,30 +1,14 @@
 #include "numeric_treewidgetitem.h"
 #include "PeakGroup.h"
 
-static PeakGroup::ClassifiedLabel labelForString(const QString& labelString)
-{
-    if (labelString == "PeakGroup::ClassifiedLabel::Signal") {
-        return PeakGroup::ClassifiedLabel::Signal;
-    } else if (labelString == "PeakGroup::ClassifiedLabel::Noise") {
-        return PeakGroup::ClassifiedLabel::Noise;
-    } else if (labelString == "PeakGroup::ClassifiedLabel::Correlation") {
-        return PeakGroup::ClassifiedLabel::Correlation;
-    } else if (labelString == "PeakGroup::ClassifiedLabel::Pattern") {
-        return PeakGroup::ClassifiedLabel::Pattern;
-    } else if (labelString == "PeakGroup::ClassifiedLabel::CorrelationAndPattern") {
-        return PeakGroup::ClassifiedLabel::CorrelationAndPattern;
-    }
-    return PeakGroup::ClassifiedLabel::None;
-}
-
 bool NumericTreeWidgetItem::operator<( const QTreeWidgetItem & other ) const{
     int sortCol = treeWidget()->sortColumn();
 
     // takes care of sorting based on PeakML class labels
-    QVariant thisUserData = this->data(sortCol, Qt::UserRole);
-    QVariant otherUserData = other.data(sortCol, Qt::UserRole);
-    auto thisLabel = labelForString(thisUserData.value<QString>());
-    auto otherLabel = labelForString(otherUserData.value<QString>());
+    QString thisLabelString = this->data(sortCol, Qt::UserRole).value<QString>();
+    QString otherLabelString = other.data(sortCol, Qt::UserRole).value<QString>();
+    auto thisLabel = PeakGroup::labelForString(thisLabelString.toStdString());
+    auto otherLabel = PeakGroup::labelForString(otherLabelString.toStdString());
     if (thisLabel != PeakGroup::ClassifiedLabel::None
         || otherLabel != PeakGroup::ClassifiedLabel::None) {
         return thisLabel < otherLabel;

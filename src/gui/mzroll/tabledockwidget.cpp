@@ -273,42 +273,9 @@ void TableDockWidget::updateItem(QTreeWidgetItem *item, bool updateChildren) {
   item->setText(2, QString(group->getName().c_str()));
 
   item->setIcon(0, iconsForLegend()[group->predictedLabel()]);
-  if (group->predictedLabel() == PeakGroup::ClassifiedLabel::Correlation) {
-    QString castLabel = "PeakGroup::ClassifiedLabel::Correlation";
-    item->setData(0,
-                  Qt::UserRole,
-                  QVariant::fromValue(castLabel));
-  } else if (group->predictedLabel() == PeakGroup::ClassifiedLabel::Pattern) {
-    QString castLabel = "PeakGroup::ClassifiedLabel::Pattern";
-    item->setData(0,
-                  Qt::UserRole,
-                  QVariant::fromValue(castLabel));
-  } else if (group->predictedLabel()
-             == PeakGroup::ClassifiedLabel::CorrelationAndPattern) {
-    QString castLabel = "PeakGroup::ClassifiedLabel::CorrelationAndPattern";
-    item->setData(0,
-                  Qt::UserRole,
-                  QVariant::fromValue(castLabel));
-  } else if (group->predictedLabel() == PeakGroup::ClassifiedLabel::Signal
-             || group->userLabel() == 'g') {
-    // we have to store stringified classifier labels because QVariant has
-    // issues with standard enum classes
-    QString castLabel = "PeakGroup::ClassifiedLabel::Signal";
-    item->setData(0,
-                  Qt::UserRole,
-                  QVariant::fromValue(castLabel));
-  } else if (group->predictedLabel() == PeakGroup::ClassifiedLabel::Noise
-             || group->userLabel() == 'b') {
-    QString castLabel = "PeakGroup::ClassifiedLabel::Noise";
-    item->setData(0,
-                  Qt::UserRole,
-                  QVariant::fromValue(castLabel));
-  } else {
-    QString castLabel = "PeakGroup::ClassifiedLabel::None";
-    item->setData(0,
-                  Qt::UserRole,
-                  QVariant::fromValue(castLabel));
-  }
+  QString castLabel =
+      QString::fromStdString(PeakGroup::labelToString(group->predictedLabel()));
+  item->setData(0, Qt::UserRole, QVariant::fromValue(castLabel));
   _paintClassificationDisagreement(item);
 
   if (filtersDialog->isVisible()) {
