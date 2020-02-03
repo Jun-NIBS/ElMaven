@@ -276,7 +276,8 @@ void TableDockWidget::updateItem(QTreeWidgetItem *item, bool updateChildren) {
   QString castLabel =
       QString::fromStdString(PeakGroup::labelToString(group->predictedLabel()));
   item->setData(0, Qt::UserRole, QVariant::fromValue(castLabel));
-  _paintClassificationDisagreement(item);
+  // TODO: we show classification disagreement only for non-PeakML tables
+  // _paintClassificationDisagreement(item);
 
   if (filtersDialog->isVisible()) {
     float minG = sliders["GoodPeakCount"]->minBoundValue();
