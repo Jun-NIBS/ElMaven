@@ -421,10 +421,10 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
     // TODO: binary name will keep changing and should not be hardcoded
     // TODO: model should not exist anywhere on the filesystem
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX)
-    auto mlBinary = tempDir + QDir::separator() + "MOI";
+    auto mlBinary = tempDir + QDir::separator() + "moi";
 #endif
 #ifdef Q_OS_WIN
-    auto mlBinary = tempDir + QDir::separator() + "MOI.exe";
+    auto mlBinary = tempDir + QDir::separator() + "moi.exe";
 #endif
     auto mlModel = tempDir + QDir::separator() + "model.pickle.dat";
 
@@ -463,9 +463,9 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
     }
 
     QStringList mlArguments;
-    mlArguments << "--ambiguousfeatureDataFile" << peakAttributesFile
-                << "--MOIDataFileName" << classificationOutputFile
-                << "--modelPath" << mlModel;
+    mlArguments << "--input_attributes_file" << peakAttributesFile
+                << "--output_moi_file" << classificationOutputFile
+                << "--model_path" << mlModel;
     QProcess subProcess;
     subProcess.setWorkingDirectory(QFileInfo(mlBinary).path());
     subProcess.start(mlBinary, mlArguments);
