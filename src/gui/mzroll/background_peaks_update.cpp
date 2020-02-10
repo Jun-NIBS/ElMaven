@@ -487,10 +487,14 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
 
     map<int, pair<int, float>> predictions;
     map<int, multimap<float, string>> inferences;
+    map<int, vector<pair<int, float>>> correlations;
     map<string, int> headerColumnMap;
     map<string, int> attributeHeaderColumnMap;
     vector<string> headers;
-    vector<string> knownHeaders = {"groupId", "label", "probability"};
+    vector<string> knownHeaders = {"groupId",
+                                   "label",
+                                   "probability",
+                                   "correlations"};
     while (!file.atEnd()) {
         string line = file.readLine().trimmed().toStdString();
         if (line.empty())
@@ -525,12 +529,32 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
         int groupId = -1;
         int label = -1;
         float probability = 0.0f;
+        vector<pair<int, float>> group_correlations;
         if (headerColumnMap.count("groupId"))
             groupId = string2integer(fields[headerColumnMap["groupId"]]);
         if (headerColumnMap.count("label"))
             label = string2integer(fields[headerColumnMap["label"]]);
         if (headerColumnMap.count("probability"))
             probability = string2float(fields[headerColumnMap["probability"]]);
+        if (headerColumnMap.count("correlations")) {
+            QString correlations_str =
+                QString::fromStdString(fields[headerColumnMap["correlations"]]);
+            if (correlations_str != "[]") {
+                // trim brackets from start and end
+                auto size = correlations_str.size();
+                correlations_str = correlations_str.mid(2, size - 4);
+
+                // obtain individual {group ID <-> correlation score} pair
+                QStringList pair_strings = correlations_str.split(") (");
+                for (auto& pair_str : pair_strings) {
+                    QStringList pair = pair_str.split(" ");
+                    group_correlations.push_back(
+                        make_pair(string2integer(pair.at(0).toStdString()),
+                                  string2float(pair.at(1).toStdString())));
+                }
+            }
+        }
+
         if (groupId != -1) {
             predictions[groupId] = make_pair(label, probability);
 
@@ -543,6 +567,7 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
                 groupInference.insert(make_pair(value, attribute));
             }
             inferences[groupId] = groupInference;
+            correlations[groupId] = group_correlations;
         }
     }
 
@@ -555,5 +580,19 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
         }
         if (inferences.count(group.groupId))
             group.setPredictionInference(inferences.at(group.groupId));
+
+        // add correlated groups
+        auto& group_correlations = correlations.at(group.groupId);
+        for (auto& elem : group_correlations) {
+            auto groupId = elem.first;
+            auto correlationFactor = elem.second;
+            auto result = find_if(begin(groups),
+                                  end(groups),
+                                  [groupId] (const PeakGroup& other) {
+                                      return other.groupId == groupId;
+                                  });
+            if (result != end(groups))
+                group.addCorrelatedGroup(&(*result), correlationFactor);
+        }
     }
 }
