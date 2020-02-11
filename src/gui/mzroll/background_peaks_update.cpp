@@ -487,7 +487,7 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
 
     map<int, pair<int, float>> predictions;
     map<int, multimap<float, string>> inferences;
-    map<int, vector<pair<int, float>>> correlations;
+    map<int, map<int, float>> correlations;
     map<string, int> headerColumnMap;
     map<string, int> attributeHeaderColumnMap;
     vector<string> headers;
@@ -529,7 +529,7 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
         int groupId = -1;
         int label = -1;
         float probability = 0.0f;
-        vector<pair<int, float>> group_correlations;
+        map<int, float> group_correlations;
         if (headerColumnMap.count("groupId"))
             groupId = string2integer(fields[headerColumnMap["groupId"]]);
         if (headerColumnMap.count("label"))
@@ -548,9 +548,9 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
                 QStringList pair_strings = correlations_str.split(") (");
                 for (auto& pair_str : pair_strings) {
                     QStringList pair = pair_str.split(" ");
-                    group_correlations.push_back(
-                        make_pair(string2integer(pair.at(0).toStdString()),
-                                  string2float(pair.at(1).toStdString())));
+                    auto corrGroupId = string2integer(pair.at(0).toStdString());
+                    auto corrScore = string2float(pair.at(1).toStdString());
+                    group_correlations[corrGroupId] = corrScore;
                 }
             }
         }
@@ -582,17 +582,11 @@ void BackgroundPeakUpdate::classifyGroups(vector<PeakGroup>& groups)
             group.setPredictionInference(inferences.at(group.groupId));
 
         // add correlated groups
+        if (correlations.count(group.groupId) == 0)
+            continue;
+
         auto& group_correlations = correlations.at(group.groupId);
-        for (auto& elem : group_correlations) {
-            auto groupId = elem.first;
-            auto correlationFactor = elem.second;
-            auto result = find_if(begin(groups),
-                                  end(groups),
-                                  [groupId] (const PeakGroup& other) {
-                                      return other.groupId == groupId;
-                                  });
-            if (result != end(groups))
-                group.addCorrelatedGroup(&(*result), correlationFactor);
-        }
+        for (auto& elem : group_correlations)
+            group.addCorrelatedGroup(elem.first, elem.second);
     }
 }

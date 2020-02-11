@@ -162,6 +162,8 @@ void PeakGroup::copyObj(const PeakGroup& o)  {
     _predictionProbability = o.predictionProbability();
     _predictionInference = o.predictionInference();
 
+    _correlatedGroups = o.getCorrelatedGroups();
+
     copyChildren(o);
 }
 
@@ -990,13 +992,13 @@ multimap<float, string> PeakGroup::predictionInference() const
     return _predictionInference;
 }
 
-void PeakGroup::addCorrelatedGroup(PeakGroup* correlatedGroup,
+void PeakGroup::addCorrelatedGroup(int groupId,
                                    const float correlationFactor)
 {
-    _correlatedGroups[correlatedGroup] = correlationFactor;
+    _correlatedGroups[groupId] = correlationFactor;
 }
 
-map<PeakGroup *, float> PeakGroup::getCorrelatedGroups() const
+map<int, float> PeakGroup::getCorrelatedGroups() const
 {
     return _correlatedGroups;
 }

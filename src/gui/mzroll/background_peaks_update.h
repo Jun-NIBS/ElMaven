@@ -101,7 +101,7 @@ public:
         _untargetedMustHaveMs2 = pred;
     }
 
-    void classifyGroups(vector<PeakGroup> &group);
+    void classifyGroups(vector<PeakGroup>& groups);
 
 Q_SIGNALS:
 
