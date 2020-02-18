@@ -8,6 +8,7 @@
 #include "clusterdialog.h"
 #include "Compound.h"
 #include "controller.h"
+#include "correlationtable.h"
 #include "classifierNeuralNet.h"
 #include "csvreports.h"
 #include "EIC.h"
@@ -1095,6 +1096,18 @@ TableDockWidget::_peakTableGroupedBySubsets() {
   return itemsBySubset;
 }
 
+void TableDockWidget::hideEvent(QHideEvent* event)
+{
+  QDockWidget::hideEvent(event);
+  _mainwindow->getCorrelationTable()->setVisible(false);
+}
+
+void TableDockWidget::showEvent(QShowEvent* event)
+{
+  QDockWidget::showEvent(event);
+  _refreshCycleBuffer();
+}
+
 void TableDockWidget::_refreshCycleBuffer()
 {
   if (_cycleInProgress)
@@ -1107,6 +1120,13 @@ void TableDockWidget::_refreshCycleBuffer()
   _cycleBuffer.clear();
 
   auto correlatedGroups = selectedGroup->getCorrelatedGroups();
+  if (correlatedGroups.empty()) {
+    _mainwindow->getCorrelationTable()->setVisible(false);
+    return;
+  }
+  _mainwindow->getCorrelationTable()->setVisible(true);
+  _mainwindow->getCorrelationTable()->setReferencePeakGroup(selectedGroup);
+
   QTreeWidgetItemIterator itr(treeWidget);
   while (*itr) {
     QTreeWidgetItem *item = (*itr);
@@ -1116,8 +1136,14 @@ void TableDockWidget::_refreshCycleBuffer()
       if (group == nullptr)
         continue;
 
-      if (correlatedGroups.count(group->groupId) || group == selectedGroup)
+      if (group == selectedGroup)
         _cycleBuffer.append(item);
+
+      if (correlatedGroups.count(group->groupId)) {
+        _cycleBuffer.append(item);
+        auto corr = correlatedGroups.at(group->groupId);
+        _mainwindow->getCorrelationTable()->addCorrelatedPeakGroup(group, corr);
+      }
     }
     ++itr;
   }

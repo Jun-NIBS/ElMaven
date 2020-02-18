@@ -68,6 +68,7 @@ class MavenParameters;
 class LibraryManager;
 class Mixpanel;
 class InfoDialog;
+class CorrelationTable;
 
 extern Database DB;
 
@@ -262,6 +263,11 @@ public:
     bool timestampFileExists;
 
 	void loadPollySettings(QString fileName);
+
+    CorrelationTable* getCorrelationTable() const {
+        return _correlationTable;
+    }
+
 Q_SIGNALS:
 	void valueChanged(int newValue);
     void saveSignal();
@@ -525,6 +531,7 @@ private:
 
     Mixpanel* _usageTracker;
     InfoDialog* _infoDialog;
+    CorrelationTable* _correlationTable;
 
     QString _newAutosaveFile();
     void _setProjectFilenameIfEmpty();
