@@ -160,9 +160,7 @@ map<string, PeakGroup> IsotopeDetection::getIsotopes(PeakGroup* parentgroup, vec
                 if (isotopes.count(isotopeName) == 0) { //label the peak of isotope
                     PeakGroup g;
                     g.meanMz = isotopeMass; //This get's updated in groupStatistics function
-                    g.expectedMz = isotopeMass;
-                    g.tagString = isotopeName;
-                    g.expectedAbundance = expectedAbundance;
+                    g.tagIsotope(isotopeName, isotopeMass, expectedAbundance);
                     g.isotopeC13count = x.C13;
                     g.setSelectedSamples(parentgroup->samples);
 

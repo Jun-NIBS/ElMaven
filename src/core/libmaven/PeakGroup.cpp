@@ -24,7 +24,7 @@ PeakGroup::PeakGroup()  {
     currentIntensity = 0;
     meanRt=0;
     meanMz=0;
-    expectedMz=0;
+    _expectedMz = 0.0f;
 
     ms2EventCount = 0;
 
@@ -55,7 +55,7 @@ PeakGroup::PeakGroup()  {
     //quantileIntensityPeaks = 0;
     //quantileQualityPeaks = 0;
 
-    expectedAbundance=0;
+    _expectedAbundance = 0.0f;
     isotopeC13count=0;
 
     minRt=0;
@@ -100,7 +100,7 @@ void PeakGroup::copyObj(const PeakGroup& o)  {
     currentIntensity = o.currentIntensity;
     meanRt=o.meanRt;
     meanMz=o.meanMz;
-    expectedMz=o.expectedMz;
+    _expectedMz = o._expectedMz;
 
     ms2EventCount = o.ms2EventCount;
     fragMatchScore = o.fragMatchScore;
@@ -129,7 +129,7 @@ void PeakGroup::copyObj(const PeakGroup& o)  {
     groupQuality=o.groupQuality;
     weightedAvgPeakQuality=o.weightedAvgPeakQuality;
     predictedLabel=o.predictedLabel;
-    expectedAbundance = o.expectedAbundance;
+    _expectedAbundance = o._expectedAbundance;
     isotopeC13count=o.isotopeC13count;
 
     deletedFlag = o.deletedFlag;
@@ -185,7 +185,7 @@ void PeakGroup::clear() {
     deletePeaks();
     deleteChildren();
     meanMz  = 0;
-    expectedMz = 0;
+    _expectedMz = 0;
     groupRank=INT_MAX;
 }
 
@@ -213,6 +213,9 @@ bool PeakGroup::hasCompoundLink() const
 
 Compound* PeakGroup::getCompound() const
 {
+    if (parent != nullptr)
+        return parent->getCompound();
+
     if (hasSlice()) {
         return _slice.compound;
     }
@@ -535,6 +538,20 @@ float PeakGroup::massCutoffDist(float cmass,MassCutoff *massCutoff)
     return mzUtils::massCutoffDist(cmass,meanMz,massCutoff);
 }
 
+void PeakGroup::tagIsotope(string isotopeName,
+                           float isotopeMass,
+                           float isotopeAbundance)
+{
+    tagString = isotopeName;
+    _expectedMz = isotopeMass;
+    _expectedAbundance = isotopeAbundance;
+}
+
+float PeakGroup::getExpectedAbundance() const
+{
+    return _expectedAbundance;
+}
+
 void PeakGroup::updateQuality() {
     maxQuality=0;
     goodPeakCount=0;
@@ -565,7 +582,7 @@ double PeakGroup::getExpectedMz(int charge) {
         && !_slice.compound->formula().empty()
         && _slice.compound->mass > 0
     ) { 
-        return expectedMz;
+        return _expectedMz;
     }
     else if (!isIsotope() && hasSlice() && _slice.compound != NULL && _slice.compound->mass > 0) {
         if (!_slice.compound->formula().empty() && _adduct != nullptr) {
@@ -725,7 +742,7 @@ void PeakGroup::summary() {
     cerr
         <<"\t" << "meanRt=" << meanRt << endl
         <<"\t" << "meanMz=" << meanMz << endl
-        <<"\t" << "expectedMz=" << expectedMz << endl
+        <<"\t" << "expectedMz=" << _expectedMz << endl
         <<"\t" << "goodPeakCount=" << goodPeakCount << endl
         <<"\t" << "maxQuality=" <<  maxQuality << endl
         <<"\t" << "maxNoNoiseObs=" << maxNoNoiseObs << endl

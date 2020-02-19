@@ -519,8 +519,8 @@ void PathwayWidget::updateCompoundConcentrations() {
 		if ( isotope.tagString == "C12 PARENT") {
 			for(int j=0; j < values.size(); j++ ) vp[j] = values[j];
 		} else if ( isotope.isIsotope() ) {	//labeled forms
-			for(int j=0; j < values.size(); j++ ) vl[j] +=values[j];
-			for(int j=0; j < values.size(); j++ ) cf[j] += isotope.expectedAbundance;
+            for(int j=0; j < values.size(); j++ ) vl[j] +=values[j];
+            for(int j=0; j < values.size(); j++ ) cf[j] += isotope.getExpectedAbundance();
 		}
 	}
 
