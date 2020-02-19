@@ -20,7 +20,8 @@ map<Version, int> appDbVersionMap = {
     {Version("0.7.0"), 1},
     {Version("0.8.0"), 2},
     {Version("0.9.0"), 3},
-    {Version("0.10.0"), 4}
+    {Version("0.10.0"), 4},
+    {Version("0.11.0"), 5}
 };
 
 /**
@@ -448,6 +449,17 @@ map<int, string> dbVersionUpgradeScripts = {
         "BEGIN TRANSACTION;"
         "ALTER TABLE user_settings ADD COLUMN identification_match_rt  INTEGER;"
         "ALTER TABLE user_settings ADD COLUMN identification_rt_window REAL;"
+        "COMMIT;"
+    },
+    {
+        4,
+        "BEGIN TRANSACTION;"
+        "ALTER TABLE samples ADD COLUMN injection_time INTEGER;"
+        "ALTER TABLE samples ADD COLUMN manufacturer TEXT;"
+        "ALTER TABLE samples ADD COLUMN model TEXT;"
+        "ALTER TABLE samples ADD COLUMN ionisation TEXT;"
+        "ALTER TABLE samples ADD COLUMN mass_analyzer TEXT;"
+        "ALTER TABLE samples ADD COLUMN detector TEXT;"
         "COMMIT;"
     }
 };
