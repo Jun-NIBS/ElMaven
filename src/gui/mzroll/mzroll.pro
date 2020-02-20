@@ -248,7 +248,8 @@ HEADERS += stable.h \
            isotopedialog.h \
            adductwidget.h \
            autoupdater.h \
-           updatedialog.h
+           updatedialog.h \
+           projectsaveworker.h
 
 SOURCES += mainwindow.cpp  \
            database.cpp \
@@ -323,7 +324,8 @@ SOURCES += mainwindow.cpp  \
            isotopedialog.cpp \
            adductwidget.cpp \
            autoupdater.cpp \
-           updatedialog.cpp
+           updatedialog.cpp \
+           projectsaveworker.cpp
 
 linux {
     SOURCES -= autoupdater.cpp
