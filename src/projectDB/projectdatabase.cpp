@@ -14,7 +14,8 @@
 #include "schema.h"
 
 ProjectDatabase::ProjectDatabase(const string& dbFilename,
-                                 const string& version)
+                                 const string& version,
+                                 const bool saveRawData)
 {
     _connection = new Connection(dbFilename);
 
@@ -56,6 +57,8 @@ ProjectDatabase::ProjectDatabase(const string& dbFilename,
 
         _setVersion(requiredDbVersion);
     }
+
+    _saveRawData = saveRawData;
 }
 
 ProjectDatabase::~ProjectDatabase()
@@ -350,7 +353,9 @@ void ProjectDatabase::saveGroupPeaks(PeakGroup* group, const int databaseId)
                      , :local_max_flag          \
                      , :from_blank_sample       \
                      , :label                   \
-                     , :peak_spline_area        )");
+                     , :peak_spline_area        \
+                     , :eic_rt                  \
+                     , :eic_intensity           )");
 
     for (Peak p : group->peaks) {
         peaksQuery->bind(":group_id", databaseId);

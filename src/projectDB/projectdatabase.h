@@ -51,8 +51,12 @@ public:
      * @param dbFilename Absolute filename for the database file to be used.
      * @param version Version string for the application. This value will be
      * used to deduce whether the database needs schema upgrade.
+     * @param Boolean that decides whether or not the project should save raw
+     * EIC and spectra for peaks. Once set this property cannot be changed.
      */
-    ProjectDatabase(const string& dbFilename, const string& version);
+    ProjectDatabase(const string& dbFilename,
+                    const string& version,
+                    const bool saveRawData = false);
 
     /**
      * @brief Destroy the object and close database connection.
@@ -394,6 +398,12 @@ private:
      * and need not be loaded again.
      */
     map<string, Compound*> _compoundIdMap;
+
+    /**
+     * @brief _saveRawData If set to true, while project construction, each peak
+     * will be saved with raw data (EIC & spectra).
+     */
+    bool _saveRawData;
 
     /**
      * @brief Assign each sample in the given vector with a unique ID.

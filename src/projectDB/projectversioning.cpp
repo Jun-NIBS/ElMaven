@@ -454,6 +454,7 @@ map<int, string> dbVersionUpgradeScripts = {
     {
         4,
         "BEGIN TRANSACTION;"
+
         "ALTER TABLE samples ADD COLUMN injection_time INTEGER;"
         "ALTER TABLE samples ADD COLUMN manufacturer TEXT;"
         "ALTER TABLE samples ADD COLUMN model TEXT;"
@@ -462,6 +463,9 @@ map<int, string> dbVersionUpgradeScripts = {
         "ALTER TABLE samples ADD COLUMN detector TEXT;"
 
         "ALTER TABLE user_settings ADD COLUMN alignment_algorithm INTEGER;"
+
+        "ALTER TABLE peaks ADD COLUMN eic_rt TEXT;"
+        "ALTER TABLE peaks ADD COLUMN eic_intensity TEXT;"
 
         "COMMIT;"
     }
