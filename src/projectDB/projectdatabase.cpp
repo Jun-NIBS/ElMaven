@@ -6,9 +6,12 @@
 #include "connection.h"
 #include "cursor.h"
 #include "datastructures/adduct.h"
+#include "EIC.h"
+#include "mavenparameters.h"
 #include "mzMassCalculator.h"
 #include "mzAligner.h"
 #include "mzSample.h"
+#include "PeakDetector.h"
 #include "projectversioning.h"
 #include "Scan.h"
 #include "schema.h"
@@ -159,19 +162,21 @@ void ProjectDatabase::saveSamples(const vector<mzSample*>& samples)
 }
 
 void ProjectDatabase::saveGroups(const vector<PeakGroup*>& groups,
-                                 const string& tableName)
+                                 const string& tableName,
+                                 const MavenParameters *mp)
 {
     _connection->begin();
 
     for (const auto group : groups)
-        saveGroupAndPeaks(group, 0, tableName);
+        saveGroupAndPeaks(group, 0, tableName, mp);
 
     _connection->commit();
 }
 
 int ProjectDatabase::saveGroupAndPeaks(PeakGroup* group,
                                        const int parentGroupId,
-                                       const string& tableName)
+                                       const string& tableName,
+                                       const MavenParameters *mp)
 {
     if (!group)
         return -1;
@@ -229,11 +234,14 @@ int ProjectDatabase::saveGroupAndPeaks(PeakGroup* group,
     groupsQuery->bind(":tag_string", group->tagString);
 
     auto expectedMz = 0.0f;
-    if (group->hasCompoundLink())
+    if (mp != nullptr) {
+        expectedMz = group->getExpectedMz(mp->ionizationMode);
+    } else if (group->hasCompoundLink()) {
         expectedMz = group->getExpectedMz(group->getCompound()->charge);
+    }
     groupsQuery->bind(":expected_mz", expectedMz);
 
-    groupsQuery->bind(":expected_rt_diff", group->expectedRtDiff()); // do we need this anymore?
+    groupsQuery->bind(":expected_rt_diff", group->expectedRtDiff());
     groupsQuery->bind(":expected_abundance", group->getExpectedAbundance());
     groupsQuery->bind(":group_rank", group->groupRank);
     groupsQuery->bind(":label", string(1, group->label));
@@ -298,20 +306,26 @@ int ProjectDatabase::saveGroupAndPeaks(PeakGroup* group,
         cerr << "Error: failed to save peak group" << endl;
 
     int lastInsertedGroupId = _connection->lastInsertId();
-    saveGroupPeaks(group, lastInsertedGroupId);
+    saveGroupPeaks(group, lastInsertedGroupId, mp);
 
     for (auto child: group->children)
-        saveGroupAndPeaks(&child, lastInsertedGroupId, tableName);
+        saveGroupAndPeaks(&child, lastInsertedGroupId, tableName, mp);
 
     return lastInsertedGroupId;
 }
 
-void ProjectDatabase::saveGroupPeaks(PeakGroup* group, const int databaseId)
+void ProjectDatabase::saveGroupPeaks(PeakGroup* group,
+                                     const int databaseId,
+                                     const MavenParameters *mp)
 {
     if (!_connection->prepare(CREATE_PEAKS_TABLE)->execute()) {
         cerr << "Error: failed to create peaks table" << endl;
         return;
     }
+
+    vector<EIC*> eics;
+    if (_saveRawData && group->hasSlice() && mp != nullptr)
+        eics = PeakDetector::pullEICs(&group->getSlice(), group->samples, mp);
 
     auto peaksQuery = _connection->prepare(
         "INSERT INTO peaks                      \
@@ -396,6 +410,31 @@ void ProjectDatabase::saveGroupPeaks(PeakGroup* group, const int databaseId)
         peaksQuery->bind(":local_max_flag", p.localMaxFlag);
         peaksQuery->bind(":from_blank_sample", p.fromBlankSample);
         peaksQuery->bind(":label", string(1, p.label));
+
+        if (_saveRawData && !eics.empty()) {
+            auto iter = find_if(begin(eics), end(eics), [&](EIC* eic) {
+                            return (p.getSample() == eic->getSample());
+                        });
+            if (iter != end(eics)) {
+                EIC* eic = *iter;
+                stringstream rts;
+                stringstream ins;
+                rts << setprecision(4) << fixed;
+                ins << setprecision(2) << fixed;
+
+                // write comma-delimited RT and intensity values
+                for (int i = 0; i < eic->rt.size(); ++i) {
+                    rts << eic->rt[i] << ",";
+                    ins << eic->intensity[i] << ",";
+                }
+                string rtString = rts.str();
+                string inString = ins.str();
+                rtString = rtString.substr(0, rtString.size() - 1);
+                inString = inString.substr(0, inString.size() - 1);
+                peaksQuery->bind(":eic_rt", rtString);
+                peaksQuery->bind(":eic_intensity", inString);
+            }
+        }
 
         if (!peaksQuery->execute())
             cerr << "Error: failed to write peak" << endl;

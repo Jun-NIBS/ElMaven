@@ -753,7 +753,9 @@ void mzFileIO::writeGroups(QList<PeakGroup*> groups, QString tableName)
             if (group->getCompound())
                 compoundSet.insert(group->getCompound());
         }
-        _currentProject->saveGroups(groupVector, tableName.toStdString());
+        _currentProject->saveGroups(groupVector,
+                                    tableName.toStdString(),
+                                    _mainwindow->mavenParameters);
         _currentProject->saveCompounds(compoundSet);
         Q_EMIT(updateStatusString(QString("Saved %1 groups from %2 to project")
                                   .arg(QString::number(groups.size()))
@@ -770,12 +772,14 @@ void mzFileIO::updateGroup(PeakGroup* group, QString tableName)
                                                       : group->parent->groupId;
         _currentProject->saveGroupAndPeaks(group,
                                            parentGroupId,
-                                           tableName.toStdString());
+                                           tableName.toStdString(),
+                                           _mainwindow->mavenParameters);
         Q_EMIT(updateStatusString("Updated group attributes"));
     }
 }
 
-bool mzFileIO::writeSQLiteProject(QString filename)
+bool mzFileIO::writeSQLiteProject(const QString filename,
+                                  const bool saveRawData)
 {
     if (filename.isEmpty())
         return false;
@@ -809,7 +813,9 @@ bool mzFileIO::writeSQLiteProject(QString filename)
 
         qDebug() << "creating new project to save…";
         auto version = _mainwindow->appVersion().toStdString();
-        _currentProject = new ProjectDatabase(filename.toStdString(), version);
+        _currentProject = new ProjectDatabase(filename.toStdString(),
+                                              version,
+                                              saveRawData);
     }
 
     if (_currentProject) {
@@ -832,7 +838,9 @@ bool mzFileIO::writeSQLiteProject(QString filename)
             }
             string tableName = peakTable->titlePeakTable
                                         ->text().toStdString();
-            _currentProject->saveGroups(groupVector, tableName);
+            _currentProject->saveGroups(groupVector,
+                                        tableName,
+                                        _mainwindow->mavenParameters);
             groupVector.clear();
         }
         _currentProject->saveCompounds(compoundSet);
@@ -903,6 +911,7 @@ QString mzFileIO::openSQLiteProject(QString filename)
     }
 
     auto version = _mainwindow->appVersion().toStdString();
+    // TODO: check for raw data save-ability when opening existing DB as well
     _currentProject = new ProjectDatabase(openedFilename.toStdString(),
                                           version);
     return openedFilename;
