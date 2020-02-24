@@ -7,6 +7,7 @@
 #include <QSpinBox>
 
 #include "alignmentdialog.h"
+#include <common/downloadmanager.h>
 #ifndef Q_OS_LINUX
 #include "autoupdater.h"
 #endif
