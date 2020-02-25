@@ -2666,8 +2666,10 @@ PeakTableDockWidget::~PeakTableDockWidget() {
   delete toolBar;
 }
 
-void PeakTableDockWidget::destroy() {
-
+void PeakTableDockWidget::destroy()
+{
+  _mainwindow->getCorrelationTable()->clearCorrelation();
+  _mainwindow->getCorrelationTable()->setVisible(false);
   cleanUp();
   deleteLater();
   _mainwindow->removePeaksTable(this);
