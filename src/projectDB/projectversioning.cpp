@@ -466,6 +466,8 @@ map<int, string> dbVersionUpgradeScripts = {
 
         "ALTER TABLE peaks ADD COLUMN eic_rt TEXT;"
         "ALTER TABLE peaks ADD COLUMN eic_intensity TEXT;"
+        "ALTER TABLE peaks ADD COLUMN spectrum_mz TEXT;"
+        "ALTER TABLE peaks ADD COLUMN spectrum_intensity TEXT;"
 
         "COMMIT;"
     }
