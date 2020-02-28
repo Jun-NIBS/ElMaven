@@ -45,7 +45,8 @@ mzFileIO::mzFileIO(QWidget*) {
             SIGNAL(appSettingsUpdated()),
             SLOT(_readSamplesFromCurrentSQLiteProject()));
 
-    _sqliteDBLoadInProgress = false;
+    _sqliteDbLoadInProgress = false;
+    _sqliteDbSaveInProgress = false;
 }
 
 void mzFileIO::setMainWindow(MainWindow* mw) {
@@ -407,7 +408,7 @@ mzSample* mzFileIO::parseMzData(QString fileName) {
 
 void mzFileIO::run(void)
 {
-    if (_sqliteDBLoadInProgress) {
+    if (_sqliteDbLoadInProgress) {
         auto samples = _mainwindow->getSamples();
         _currentProject->updateSamples(samples);
         Q_EMIT(sqliteDBSamplesLoaded());
@@ -421,7 +422,7 @@ void mzFileIO::run(void)
         // assuming this was the last step in loading of a SQLite project
         Q_EMIT(projectLoaded());
 
-        _sqliteDBLoadInProgress = false;
+        _sqliteDbLoadInProgress = false;
     }
 
     try {
@@ -743,6 +744,7 @@ void mzFileIO::closeSQLiteProject()
 
 void mzFileIO::writeGroups(QList<PeakGroup*> groups, QString tableName)
 {
+    _sqliteDbSaveInProgress = true;
     vector<PeakGroup*> groupVector;
     set<Compound*> compoundSet;
     if (_currentProject) {
@@ -762,10 +764,12 @@ void mzFileIO::writeGroups(QList<PeakGroup*> groups, QString tableName)
                                   .arg(tableName))
         );
     }
+    _sqliteDbSaveInProgress = false;
 }
 
 void mzFileIO::updateGroup(PeakGroup* group, QString tableName)
 {
+    _sqliteDbSaveInProgress = true;
     if (_currentProject) {
         _currentProject->deletePeakGroup(group);
         auto parentGroupId = group->parent == nullptr ? 0
@@ -776,18 +780,26 @@ void mzFileIO::updateGroup(PeakGroup* group, QString tableName)
                                            _mainwindow->mavenParameters);
         Q_EMIT(updateStatusString("Updated group attributes"));
     }
+    _sqliteDbSaveInProgress = false;
 }
 
 bool mzFileIO::writeSQLiteProject(const QString filename,
                                   const bool saveRawData)
 {
-    if (filename.isEmpty())
+    _sqliteDbSaveInProgress = true;
+
+    if (filename.isEmpty()) {
+        _sqliteDbSaveInProgress = false;
         return false;
+    }
+
     qDebug() << "saving SQLite project " << filename << endl;
 
     std::vector<mzSample*> sampleSet = _mainwindow->getSamples();
-    if (sampleSet.size() == 0)
+    if (sampleSet.size() == 0) {
+        _sqliteDbSaveInProgress = false;
         return false;
+    }
 
     auto projectIsAlreadyOpen = false;
     if (_currentProject) {
@@ -845,9 +857,11 @@ bool mzFileIO::writeSQLiteProject(const QString filename,
                 QString("Project successfully saved to %1").arg(filename)
             ));
         _currentProject->vacuum();
+        _sqliteDbSaveInProgress = false;
         return true;
     }
     qDebug() << "cannot write to closed project" << filename;
+    _sqliteDbSaveInProgress = false;
     return false;
 }
 
@@ -1110,7 +1124,7 @@ void mzFileIO::_postSampleLoadOperations()
         }
     }
 
-    _sqliteDBLoadInProgress = true;
+    _sqliteDbLoadInProgress = true;
     start();
 }
 

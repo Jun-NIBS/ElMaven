@@ -173,6 +173,9 @@ Q_OBJECT
          */
         QString openSQLiteProject(QString filename);
 
+        bool sqliteDbLoadInProgress() const { return _sqliteDbLoadInProgress; }
+        bool sqliteDbSaveInProgress() const { return _sqliteDbSaveInProgress; }
+
         /**
          * @brief Create a new file name from the given file name, with its
          * extension changed.
@@ -329,7 +332,8 @@ Q_OBJECT
          */
         ProjectDatabase* _currentProject;
 
-        bool _sqliteDBLoadInProgress;
+        bool _sqliteDbLoadInProgress;
+        bool _sqliteDbSaveInProgress;
 
         /**
          * @brief A vector containing names of samples that were not found, and
