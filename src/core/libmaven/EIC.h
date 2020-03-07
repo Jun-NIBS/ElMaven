@@ -242,6 +242,9 @@ class EIC
     void subtractBaseLine();
     void clearEICContents();
     void interpolate();
+
+    vector<EIC*> peakSegments(int smoothingWindow);
+
     /**
          * [size ]
          * @method size
@@ -371,5 +374,8 @@ class EIC
     void _computeAsLSBaseline(const float lambda,
                               const float p,
                               const int numIterations=10);
+
+    pair<size_t, EIC*> _eicSegment(float start, float end);
+    vector<pair<float, float>> _regionalPeakMarkers(int smoothingWindow);
 };
 #endif //MZEIC_H
