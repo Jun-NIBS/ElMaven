@@ -716,6 +716,17 @@ namespace mzUtils {
                                      int interpRate,
                                      int decimRate);
 
+
+        std::vector<double> filterSignal(const std::vector<double>& signal,
+                                         const std::vector<double>& filter);
+
+        std::vector<double> derivative(const std::vector<double>& signal,
+                                       const int order = 1);
+
+        float idealSlopeValue(vector<double> signal);
+
+        float sharpnessValue(vector<double> signal);
+
         /**
          * @brief Create a clock that can be used to indicate the start of an
          * operation which needs to be timed.
