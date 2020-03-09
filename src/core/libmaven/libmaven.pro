@@ -110,7 +110,8 @@ SOURCES = base64.cpp \
           groupFeatures.cpp \
           svmPredictor.cpp \
           zlib.cpp \
-          adductdetection.cpp
+          adductdetection.cpp \
+          deconvolution.cpp
 
 HEADERS += constants.h \
            base64.h \
@@ -156,4 +157,5 @@ HEADERS += constants.h \
            groupClassifier.h \
            groupFeatures.h \
            svmPredictor.h \
-           adductdetection.h
+           adductdetection.h \
+           deconvolution.h
