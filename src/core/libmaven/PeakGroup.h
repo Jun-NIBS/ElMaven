@@ -28,6 +28,9 @@ class PeakGroup{
 
         string _tableName;
 
+        void _computeDdaFragPattern(float productPpmTolr);
+        void _computeDiaFragPattern(float productPpmTolr);
+
     public:
         enum class GroupType {None=0, C13=1, Adduct=2, Covariant=4, Isotope=5 };
         enum QType	   {AreaTop=0,
