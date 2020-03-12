@@ -1490,7 +1490,7 @@ void MainWindow::setCompoundFocus(Compound* c, float fragmentMz)
 
 	if (eicWidget->isVisible() && samples.size() > 0) {
         if (fragmentMz > 0.0f) {
-            eicWidget->setFragment(c, fragmentMz);
+            eicWidget->showFragment(c, fragmentMz);
         } else {
             eicWidget->setCompound(c);
             PeakGroup *selectedGroup = eicWidget->getSelectedGroup();

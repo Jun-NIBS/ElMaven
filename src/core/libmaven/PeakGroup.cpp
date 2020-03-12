@@ -890,13 +890,13 @@ void PeakGroup::_computeDiaFragPattern(float productPpmTolr)
     if (compound == nullptr)
         return;
 
-    Fragment fragment;
+    Fragment fragment(Fragment::MsType::DIA);
     auto precursorMz = compound->adjustedMass(compound->charge);
     MassCutoff massCutoff;
     massCutoff.setMassCutoffAndType(productPpmTolr, "ppm");
 
     for (const auto& peak : peaks) {
-        Fragment* peakFragmentProfile = new Fragment;
+        Fragment* peakFragmentProfile = new Fragment(Fragment::MsType::DIA);
         NimbleDSP::RealVector<float> rtValues;
         NimbleDSP::RealVector<float> intensityValues;
 
@@ -993,7 +993,12 @@ Scan* PeakGroup::getAverageFragmentationScan(float productPpmTolr)
 {
     //build consensus ms2 specta
     computeFragPattern(productPpmTolr);
-    Scan* avgScan = new Scan(NULL, 0, 2, 0, 0, 0);
+
+    auto scanType = Scan::MsType::DDA;
+    if (fragmentationPattern.msType() == Fragment::MsType::DIA)
+        scanType = Scan::MsType::DIA;
+
+    Scan* avgScan = new Scan(NULL, 0, 2, 0, 0, 0, scanType);
 
     for(unsigned int i = 0; i < fragmentationPattern.mzValues.size(); i++) {
         avgScan->mz.push_back(fragmentationPattern.mzValues[i]);
@@ -1002,7 +1007,6 @@ Scan* PeakGroup::getAverageFragmentationScan(float productPpmTolr)
 
     avgScan->precursorMz = meanMz;
     avgScan->rt = meanRt;
-    
     return avgScan;
 }
 

@@ -168,7 +168,7 @@ public Q_SLOTS:
      */
     void setSensitiveToTolerance(bool sensitive);
 
-    void setFragment(Compound* precursor, float fragmentMz);
+    void showFragment(Compound* precursor, float fragmentMz);
 
 protected:
 	void moved(QMouseEvent *event);
