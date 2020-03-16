@@ -1180,10 +1180,30 @@ Series:  Prentice-Hall Series in Automatic Computation
         return buf.vec;
     }
 
+    vector<float> filterSignal(const std::vector<float> &signal,
+                               const std::vector<float> &filter)
+    {
+        NimbleDSP::RealFirFilter<float> firFilter(filter);
+        firFilter.filtOperation = NimbleDSP::ONE_SHOT_TRIM_TAILS;
+
+        NimbleDSP::RealVector<float> buf(signal);
+        buf = firFilter.conv(buf, false);
+        return buf.vec;
+    }
+
     vector<double> derivative(const vector<double>& signal,
                               const int order)
     {
         NimbleDSP::RealVector<double> buf(signal);
+        for (int i = 1; i <= order; ++i)
+            buf = buf.diff();
+        return buf.vec;
+    }
+
+    vector<float> derivative(const vector<float>& signal,
+                             const int order)
+    {
+        NimbleDSP::RealVector<float> buf(signal);
         for (int i = 1; i <= order; ++i)
             buf = buf.diff();
         return buf.vec;
@@ -1230,6 +1250,11 @@ Series:  Prentice-Hall Series in Automatic Computation
         return (leftIdealSlope + rightIdealSlope) / sumOfAbsIntensities;
     }
 
+    float idealSlopeValue(vector<float> signal)
+    {
+        return idealSlopeValue(vector<double>(begin(signal), end(signal)));
+    }
+
     float sharpnessValue(vector<double> signal)
     {
         if (signal.empty())
@@ -1266,6 +1291,11 @@ Series:  Prentice-Hall Series in Automatic Computation
                  rightSharpness = sharpness;
         }
         return (leftSharpness + rightSharpness) / 2.0f;
+    }
+
+    float sharpnessValue(vector<float> signal)
+    {
+        return idealSlopeValue(vector<double>(begin(signal), end(signal)));
     }
 
     chrono::time_point<chrono::high_resolution_clock> startTimer()

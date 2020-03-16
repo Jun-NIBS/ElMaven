@@ -716,16 +716,23 @@ namespace mzUtils {
                                      int interpRate,
                                      int decimRate);
 
-
         std::vector<double> filterSignal(const std::vector<double>& signal,
                                          const std::vector<double>& filter);
+
+        std::vector<float> filterSignal(const std::vector<float>& signal,
+                                        const std::vector<float>& filter);
 
         std::vector<double> derivative(const std::vector<double>& signal,
                                        const int order = 1);
 
+        std::vector<float> derivative(const std::vector<float>& signal,
+                                      const int order = 1);
+
         float idealSlopeValue(vector<double> signal);
+        float idealSlopeValue(vector<float> signal);
 
         float sharpnessValue(vector<double> signal);
+        float sharpnessValue(vector<float> signal);
 
         /**
          * @brief Create a clock that can be used to indicate the start of an
