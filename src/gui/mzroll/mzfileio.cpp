@@ -728,6 +728,16 @@ void mzFileIO::insertSettingForSave(const string key, const variant var)
     _settingsMap[key] = var;
 }
 
+variant mzFileIO::querySavedSetting(const string key) const
+{
+    if (_currentProject != nullptr) {
+        auto settings = _currentProject->loadSettings();
+        if (settings.count(key))
+            return settings.at(key);
+    }
+    return variant(string());
+}
+
 bool mzFileIO::sqliteProjectIsOpen()
 {
     return _currentProject != nullptr;

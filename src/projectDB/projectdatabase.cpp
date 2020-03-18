@@ -791,7 +791,8 @@ void ProjectDatabase::saveSettings(const map<string, variant>& settingsMap)
                       , :search_adducts                   \
                       , :adduct_search_window             \
                       , :adduct_percent_correlation       \
-                      , :alignment_algorithm              )");
+                      , :alignment_algorithm              \
+                      , :active_table_name                )");
 
     settingsQuery->bind(":ionization_mode", BINT(settingsMap.at("ionizationMode")));
     settingsQuery->bind(":ionization_type", BINT(settingsMap.at("ionizationType")));
@@ -916,6 +917,8 @@ void ProjectDatabase::saveSettings(const map<string, variant>& settingsMap)
     settingsQuery->bind(":obi_warp_factor_diag", BDOUBLE(settingsMap.at("obi_warp_factor_diag")));
     settingsQuery->bind(":obi_warp_no_standard_normal", BINT(settingsMap.at("obi_warp_no_standard_normal")));
     settingsQuery->bind(":obi_warp_local", BINT(settingsMap.at("obi_warp_local")));
+
+    settingsQuery->bind(":active_table_name", BSTRING(settingsMap.at("activeTableName")));
 
     if (!settingsQuery->execute()) {
         cerr << "Error: failed to save user settings." << endl;
@@ -1538,6 +1541,8 @@ map<string, variant> ProjectDatabase::loadSettings()
         settingsMap["obi_warp_factor_gap"] = settingsQuery->doubleValue("obi_warp_factor_gap");
         settingsMap["obi_warp_no_standard_normal"] = settingsQuery->integerValue("obi_warp_no_standard_normal");
         settingsMap["obi_warp_local"] = settingsQuery->integerValue("obi_warp_local");
+
+        settingsMap["activeTableName"] = settingsQuery->stringValue("active_table_name");
     }
 
     return settingsMap;
