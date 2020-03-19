@@ -754,6 +754,8 @@ MainWindow::~MainWindow()
 	analytics->sessionEnd();
     delete mavenParameters;
     delete _usageTracker;
+    delete saveWorker;
+    delete autosaveWorker;
 }
 
 void MainWindow::promptUpdate(QString version)
@@ -2570,18 +2572,19 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
     writeSettings();
 
-    // creating a persistent message box, which will be cleared when
-    // the application exits anyway
-    QMessageBox *msgBox = new QMessageBox(this);
-    msgBox->setText("Please wait. A project save is in progress…");
-    msgBox->setStandardButtons(QMessageBox::NoButton);
-    msgBox->setModal(true);
-    msgBox->open();
+    if (saveWorker->isRunning()) {
+        // creating a persistent message box, which will be cleared when
+        // the application exits anyway
+        QMessageBox *msgBox = new QMessageBox(this);
+        msgBox->setText("Please wait. A project save is in progress…");
+        msgBox->setStandardButtons(QMessageBox::NoButton);
+        msgBox->setModal(true);
+        msgBox->open();
 
-    // wait until autosave has finished
-    while(saveWorker->isRunning())
-        QApplication::processEvents();
-
+        // wait until autosave has finished
+        while(saveWorker->isRunning())
+            QApplication::processEvents();
+    }
     event->accept();
 }
 
