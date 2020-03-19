@@ -85,7 +85,7 @@ EicWidget::EicWidget(QWidget *p) {
 
 	connect(scene(), SIGNAL(selectionChanged()), SLOT(selectionChangedAction()));
     connect(this, &EicWidget::eicUpdated, this, &EicWidget::setGalleryToEics);
-
+    setStyleSheet("QWidget { border: none; }");
 }
 
 EicWidget::~EicWidget() {
