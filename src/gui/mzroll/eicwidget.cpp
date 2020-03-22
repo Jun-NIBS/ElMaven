@@ -83,6 +83,8 @@ EicWidget::EicWidget(QWidget *p) {
     _ignoreMouseReleaseEvent = false;
     _selectionLine = nullptr;
 
+    _plottingMs2 = false;
+
 	connect(scene(), SIGNAL(selectionChanged()), SLOT(selectionChangedAction()));
     connect(this, &EicWidget::eicUpdated, this, &EicWidget::setGalleryToEics);
 
@@ -129,8 +131,10 @@ void EicWidget::mouseReleaseEvent(QMouseEvent *event) {
 
 	//user is holding shift while releasing the mouse.. integrate area
 	if (_areaIntegration
-			|| (event->button() == Qt::LeftButton
-					&& event->modifiers() == Qt::ShiftModifier)) {
+        || (event->button() == Qt::LeftButton
+            && event->modifiers() == Qt::ShiftModifier)) {
+        if (_plottingMs2)
+            return;
         toggleAreaIntegration(false);
         //minimum size for region to integrate is 0.01 seconds
 		if (rtmax - rtmin > 0.01)
@@ -334,10 +338,11 @@ void EicWidget::_eraseSelectionLine()
 void EicWidget::mouseMoveEvent(QMouseEvent* event) {
 // //qDebug <<" EicWidget::mouseMoveEvent(QMouseEvent* event)";
 	QGraphicsView::mouseMoveEvent(event);
-	//QPoint posi = event->globalPos();
-	//QToolTip::showText(posi, "(" + QString::number(rt,'f',4) + " " + QString::number(intensity,'f',2) + ")" , this);
-	if (_mouseStartPos != _mouseEndPos) {
 
+    if (_plottingMs2)
+        return;
+
+	if (_mouseStartPos != _mouseEndPos) {
         if (event->modifiers() == Qt::ShiftModifier || _areaIntegration) {
             toggleAreaIntegration(true);
 			QPointF pos = event->pos();
@@ -356,6 +361,10 @@ void EicWidget::mouseMoveEvent(QMouseEvent* event) {
 
 void EicWidget::toggleAreaIntegration(bool toggleOn)
 {
+    // we do not allow manual integration at MS/MS level
+    if (_plottingMs2)
+        return;
+
     _areaIntegration = toggleOn;
     if (toggleOn) {
         _clearEicLines();
@@ -542,7 +551,7 @@ void EicWidget::addEICLines(bool showSpline,
 {
     // sort EICs by peak height of selected group, tallest go at the back
     vector<Peak> peaks;
-    if (eicParameters->displayedGroup()) {
+    if (eicParameters->displayedGroup() && !_plottingMs2) {
         PeakGroup* group = eicParameters->displayedGroup();
         peaks = group->getPeaks();
         sort(peaks.begin(), peaks.end(), Peak::compIntensity);
@@ -1095,21 +1104,41 @@ void EicWidget::replot(PeakGroup* group)
 
 	clearPlot();
 
-	setSelectedGroup(group);
-	setTitle();
+    setSelectedGroup(group);
+    setTitle();
 
     if (group != nullptr && !group->tableName().empty()) {
         float rtMin = group->minRt;
         float rtMax = group->maxRt;
+        if (_plottingMs2) {
+            auto fragPattern = group->fragmentationPattern;
+            auto fragMz = eicParameters->_slice.mz;
+            auto fragTolr = getMainWindow()->mavenParameters->fragmentTolerance;
+            auto pos = fragPattern.findClosestHighestIntensityPos(fragMz,
+                                                                  fragTolr);
+            auto rtRegions = fragPattern.rtRegions();
+            if (!rtRegions.empty()) {
+                rtMin = rtRegions.at(pos).first;
+                rtMax = rtRegions.at(pos).second;
+            }
+        }
         addEICLines(_showSpline, _showEIC, true, rtMin, rtMax);
     } else {
         addEICLines(_showSpline, _showEIC);
     }
 	showAllPeaks();
 
-        if (group && group->getCompound() != NULL && group->getCompound()->expectedRt() > 0)
-                        _focusLineRt = group->getCompound()->expectedRt();
-	else _focusLineRt = 0;
+    if (_plottingMs2
+        && eicParameters->_slice.precursor != nullptr
+        && eicParameters->_slice.precursor->expectedRt > 0.0f) {
+        _focusLineRt = eicParameters->_slice.precursor->expectedRt;
+    } else if (group
+               && group->getCompound() != nullptr
+               && group->getCompound()->expectedRt() > 0) {
+        _focusLineRt = group->getCompound()->expectedRt();
+    } else {
+        _focusLineRt = 0;
+    }
 
     if (_showCubicSpline)
         addCubicSpline();
@@ -1142,7 +1171,9 @@ void EicWidget::setTitle() {
 
 	QString tagString;
 
-    if (eicParameters->displayedGroup() != NULL) {
+    if (_plottingMs2) {
+        tagString = "🄵";
+    } else if (eicParameters->displayedGroup() != NULL) {
         tagString = QString(eicParameters->displayedGroup()->getName().c_str());
 	} else if (eicParameters->_slice.compound != NULL) {
                 tagString = QString(eicParameters->_slice.compound->name().c_str());
@@ -1344,6 +1375,14 @@ void EicWidget::addBarPlot(PeakGroup* group) {
 	return;
 }
 
+void EicWidget::_clearBoxPlot()
+{
+    auto allItems = scene()->items();
+    if (_boxplot != nullptr && allItems.contains(_boxplot))
+        scene()->removeItem(_boxplot);
+    scene()->update();
+}
+
 void EicWidget::addBoxPlot(PeakGroup* group) {
 	//qDebug <<" EicWidget::addBoxPlot(PeakGroup* group)";
 	if (group == NULL)
@@ -1476,7 +1515,7 @@ void EicWidget::_clearEicPoints()
 
 void EicWidget::addPeakPositions(PeakGroup* group) {
 	////qDebug <<"EicWidget::addPeakPositions(PeakGroup* group) ";
-    if (!_showPeaks || _areaIntegration)
+    if (!_showPeaks || _areaIntegration || _plottingMs2)
 		return;
 
 	bool setZValue = false;
@@ -1622,7 +1661,8 @@ void EicWidget::setCompound(Compound* c)
 	//clock_gettime(CLOCK_REALTIME, &tE);
 	//qDebug() << "Time taken" << (tE.tv_sec-tS.tv_sec)*1000 + (tE.tv_nsec - tS.tv_nsec)/1e6;
 
-	mzSlice slice(minmz, maxmz, rtmin, rtmax);
+    _plottingMs2 = false;
+    mzSlice slice(minmz, maxmz, rtmin, rtmax);
 	slice.compound = c;
         if (!c->srmId().empty())
                 slice.srmId = c->srmId();
@@ -1649,9 +1689,15 @@ void EicWidget::setCompound(Compound* c)
 	// qDebug() << "Time taken" << (tE.tv_sec-tS.tv_sec)*1000 + (tE.tv_nsec - tS.tv_nsec)/1e6;
 }
 
-void EicWidget::setMzSlice(const mzSlice& slice) {
+void EicWidget::setMzSlice(const mzSlice& slice)
+{
     eicParameters->_slice.precursor = slice.precursor;
-	//qDebug << "EicWidget::setmzSlice()";
+    if (eicParameters->_slice.precursor == nullptr) {
+        _plottingMs2 = false;
+    } else {
+        _plottingMs2 = true;
+    }
+    //qDebug << "EicWidget::setmzSlice()";
 	if (slice.mzmin != eicParameters->_slice.mzmin
 			|| slice.mzmax != eicParameters->_slice.mzmax
 			|| slice.srmId != eicParameters->_slice.srmId
@@ -1693,6 +1739,7 @@ void EicWidget::setPeakGroup(PeakGroup* group) {
 	eicParameters->_slice.compound = group->getCompound();
     eicParameters->_slice.srmId = group->srmId;
 
+    _plottingMs2 = false;
     if (!group->srmId.empty()) {
         setSrmId(group->srmId);
     } else if (group->hasSlice() && !group->sliceIsZero()) {
@@ -1716,7 +1763,6 @@ void EicWidget::setPeakGroup(PeakGroup* group) {
 
     setMassCutoff(getMainWindow()->getUserMassCutoff());
     recompute();
-    // }
 
 	if (group->getCompound())
 		for (int i = 0; i < eicParameters->peakgroups.size(); i++)
@@ -1784,14 +1830,23 @@ void EicWidget::showFragment(Compound* precursor, float fragmentMz)
 
     MassCutoff massCutoff;
     massCutoff.setMassCutoffAndType(mp->fragmentTolerance, "ppm");
-    float minmz = fragmentMz - massCutoff.massCutoffValue(fragmentMz);
-    float maxmz = fragmentMz + massCutoff.massCutoffValue(fragmentMz);
-    float rtmin = eicParameters->_slice.rtmin;
-    float rtmax = eicParameters->_slice.rtmax;
+    eicParameters->_slice.mz = fragmentMz;
+    eicParameters->_slice.mzmin = fragmentMz
+                                  - massCutoff.massCutoffValue(fragmentMz);
+    eicParameters->_slice.mzmax = fragmentMz
+                                  + massCutoff.massCutoffValue(fragmentMz);
+    eicParameters->_slice.precursor = precursor;
 
-    mzSlice slice(minmz, maxmz, rtmin, rtmax);
-    slice.precursor = precursor;
-    setMzSlice(slice);
+    _plottingMs2 = true;
+    cleanup();
+    computeEICs();
+
+    auto precursorGroup = getSelectedGroup();
+    if (precursorGroup != nullptr) {
+        replot(new PeakGroup(*precursorGroup));
+    } else {
+        replot(nullptr);
+    }
 }
 
 void EicWidget::groupPeaks() {
@@ -2105,12 +2160,12 @@ void EicWidget::selectGroupNearRt(float rt) {
 
 void EicWidget::setSelectedGroup(PeakGroup* group) {
 	//qDebug <<"EicWidget::setSelectedGroup(PeakGroup* group ) ";
-	if (_frozen || group == NULL)
+    if (_frozen || group == NULL)
 		return;
-        if (_showBarPlot)
-                addBarPlot(group);
-	if (_showBoxPlot)
-                addBoxPlot(group);
+    if (_showBarPlot && !_plottingMs2)
+            addBarPlot(group);
+    if (_showBoxPlot && !_plottingMs2)
+            addBoxPlot(group);
 	//addFitLine(group);
     eicParameters->setDisplayedGroup(group);
     eicParameters->setSelectedGroup(group);

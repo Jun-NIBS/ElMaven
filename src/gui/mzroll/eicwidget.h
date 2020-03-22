@@ -71,7 +71,7 @@ public Q_SLOTS:
     void addMS2Events(float mzmin, float mzmax);
 	void integrateRegion(float rtmin, float rtmax);
 	void recompute();
-	void replot(PeakGroup*);
+    void replot(PeakGroup*);
 	void replot();
 	void replotForced();
 	void print(QPaintDevice* printer);
@@ -194,7 +194,7 @@ protected:
     void timerEvent(QTimerEvent * event);
 
 	void setupColors();
-	void setTitle();
+    void setTitle();
 	void setScan(Scan*);
 	void addAxes();
 	void showAllPeaks();
@@ -265,6 +265,12 @@ private:
     vector<EicLine*> _drawnLines;
     vector<EicPoint*> _drawnPoints;
 
+    /**
+     * @brief Flag denoting whether the EIC is currently displaying an MS/MS
+     * level EIC.
+     */
+    bool _plottingMs2;
+
 	//gui related
 	QWidget *parent;
 	QGraphicsLineItem* _focusLine;
@@ -294,6 +300,7 @@ private:
     void _clearEicLines();
     void _clearEicPoints();
     void _clearBarPlot();
+    void _clearBoxPlot();
 };
 
 #endif
