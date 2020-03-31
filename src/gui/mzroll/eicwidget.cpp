@@ -1130,8 +1130,8 @@ void EicWidget::replot(PeakGroup* group)
 
     if (_plottingMs2
         && eicParameters->_slice.precursor != nullptr
-        && eicParameters->_slice.precursor->expectedRt > 0.0f) {
-        _focusLineRt = eicParameters->_slice.precursor->expectedRt;
+        && eicParameters->_slice.precursor->expectedRt() > 0.0f) {
+        _focusLineRt = eicParameters->_slice.precursor->expectedRt();
     } else if (group
                && group->getCompound() != nullptr
                && group->getCompound()->expectedRt() > 0) {
